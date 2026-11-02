@@ -1,0 +1,314 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Sản Lượng Đơn SPX</title><style>
+:root{--orange:#ee4d2d;--green:#27743a;--ink:#1c2027;--muted:#757b83;--bg:#faf9f6;--line:#e8e8e6}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:15px}.shell{max-width:760px;margin:auto;padding-bottom:110px}header{position:sticky;top:0;z-index:5;background:white;box-shadow:0 1px 6px #00000010;padding:18px 16px;display:flex;align-items:center;gap:12px}.logo{background:var(--orange);color:white;font-weight:900;border-radius:12px;padding:12px 9px;font-size:19px}.heading{font-weight:800;font-size:clamp(19px,5vw,25px);flex:1}header button{border:0;background:transparent;font-size:22px;cursor:pointer}main{padding:17px 14px}.card{background:#fff;border:1px solid #e8e8e8;border-radius:22px;box-shadow:0 2px 5px #0000000a;padding:19px 17px;margin-bottom:18px}.muted{color:var(--muted)}h2{font-size:19px;margin:0 0 15px}h3{font-size:16px;margin:0 0 12px}.big{font-size:32px;font-weight:850;color:var(--orange);letter-spacing:-.5px}.money{font-weight:750;color:var(--green)}.flex{display:flex;align-items:center;gap:12px}.between{display:flex;justify-content:space-between;align-items:center;gap:10px}.pill{display:inline-block;background:#f2f2f1;border-radius:12px;padding:6px 10px}.tag{color:var(--orange);font-weight:700}.btn{border:0;border-radius:14px;padding:14px 15px;font-size:15px;font-weight:750;cursor:pointer;background:var(--orange);color:white}.btn.secondary{background:white;color:var(--orange);border:1px solid #dedbd9}.btn.green{background:#2e7b39}.btn.soft{background:#e8eef5;color:#25364c}.btn:disabled{opacity:.5}.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}.btn.full{width:100%}.iconcircle{width:48px;height:48px;border-radius:50%;background:#fceae6;display:grid;place-items:center;font-size:25px;flex-shrink:0}.greenCircle{background:#e5f4e9}.divider{height:1px;background:#f0f0ee;margin:16px 0}.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat{background:#faf8f6;border-radius:13px;padding:12px 8px;text-align:center}.stat strong{display:block;font-size:19px;color:var(--orange)}.stat small{color:#777}.tablewrap{overflow:auto;width:100%}table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th{background:#f4f3f0;text-align:left;padding:11px 9px}td{padding:12px 9px;border-bottom:1px solid #f3f3f3}td:nth-child(2),td:nth-child(3){color:var(--orange);font-weight:650}td:last-child{font-weight:750;color:var(--green)}tr.dim{opacity:.45}.foot{font-size:12px;color:#929292;margin-top:13px}.nav{position:fixed;z-index:8;bottom:0;left:0;right:0;background:#fff0ed;border-top:1px solid #ffe3dd;display:flex;justify-content:space-around;padding:11px 0 max(10px,env(safe-area-inset-bottom))}.nav button{background:transparent;border:0;color:#777;font-size:12px;display:grid;gap:5px;place-items:center;cursor:pointer;min-width:70px}.nav button span{font-size:23px}.nav button.active{color:var(--orange);font-weight:800}.hidden{display:none!important}.entry{border:1px solid #eee;border-radius:16px;padding:13px;margin:12px 0}.entry small{color:#888}.progress{height:9px;background:#f1f0ed;border-radius:20px;overflow:hidden;margin:12px 0}.progress>div{background:var(--orange);height:100%;border-radius:20px}.hint{background:#faf9f7;border-radius:13px;padding:13px;margin:9px 0;display:flex;justify-content:space-between;gap:10px}.hint b{color:var(--orange)}.hint em{color:var(--green);font-weight:800;font-style:normal;white-space:nowrap}.field{margin-bottom:13px}.field label{display:block;font-weight:650;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;padding:12px;border:1px solid #d8d8d8;border-radius:11px;background:white;font:inherit}.field textarea{min-height:100px}.preview{max-width:100%;max-height:420px;object-fit:contain;border-radius:10px;display:block;margin:12px auto}.overlay{position:fixed;z-index:20;inset:0;background:#0009;display:flex;align-items:flex-end;justify-content:center}.modal{background:white;width:min(100%,650px);max-height:94vh;overflow:auto;border-radius:24px 24px 0 0;padding:20px 17px 35px}.weightrow{display:grid;grid-template-columns:1fr 100px;gap:10px;align-items:center;margin:7px 0}.weightrow input{padding:10px;border:1px solid #ddd;border-radius:9px;width:100%;font-size:16px}.notice{background:#fff3e9;color:#a04b15;border-radius:12px;padding:12px;margin:12px 0;font-size:13px}.success{background:#e8f5ec;color:#246b36}.danger{color:#bd2c20}.link{border:0;background:transparent;color:var(--orange);font-weight:700;cursor:pointer}.scrollrates{overflow:auto;max-height:65vh}.scrollrates table{font-size:11px}.scrollrates th{position:sticky;top:0;background:#e0e6f6}.scrollrates td{color:#222!important;padding:7px}.rowactions{display:flex;gap:8px;flex-wrap:wrap}.smallbtn{border:1px solid #ddd;background:white;border-radius:9px;padding:8px 10px;color:#333}.kicker{font-size:13px;color:#777}#ocrStatus{font-size:13px;white-space:pre-line}.report{background:#f9f9f7;border-radius:13px;padding:14px}.report p{margin:8px 0}.month{font:inherit;border:1px solid #ddd;border-radius:10px;padding:9px;max-width:150px}details summary{cursor:pointer;font-weight:700}#ocrProgress{width:100%}@media(min-width:680px){main{padding:22px}.card{padding:24px}.modal{border-radius:22px;margin:auto;max-height:88vh}.overlay{align-items:center}}
+</style></head><body><div class="shell"><header><div class="logo">SPX</div><div class="heading">Sản Lượng Đơn SPX</div><button title="Biểu phí" onclick="openRates()">▤</button><button title="Xuất dữ liệu" onclick="exportCSV()">📄</button></header><main><div id="page"></div></main></div><nav class="nav" id="nav"></nav><div id="modalRoot"></div><input type="file" id="photoInput" accept="image/*" multiple hidden><script>
+'use strict';
+const TYPES=[{id:'giao',label:'Đơn Giao',icon:'🚚'},{id:'lay',label:'Đơn Lấy',icon:'📥'},{id:'hoan',label:'Đơn Trả',icon:'↶'},{id:'tong',label:'Tổng Kết',icon:'▥'}];
+const WEIGHTS=['>0 - 2 kg','>2 - 4 kg','>4 - 6 kg','>6 - 8 kg','>8 - 10 kg','>10 - 12 kg','>12 - 15 kg','>15 kg'];
+// Giá trong bảng theo nghìn VND. Giá tại mốc là tổng tích lũy, KHÔNG cộng lại các ô trước đó.
+// Các dòng đọc được rõ từ bảng nguồn; không tự suy diễn dòng chưa xác minh.
+const rates={
+giao:`1,15,25,60,60,60,70,90,110,120
+15,30,50,110,120,120,150,180,220,240
+30,60,75,170,170,180,220,270,330,350
+60,100,100,220,230,240,290,360,440,470
+100,150,125,280,290,300,360,450,550,590
+150,200,175,390,400,420,510,630,770,820
+200,300,275,610,630,660,800,990,1210,1290
+300,400,350,770,810,840,1020,1260,1540,1650
+400,500,525,1160,1210,1260,1520,1890,2310,2470
+500,600,675,1490,1550,1620,1960,2430,2970,3170
+600,700,800,1760,1840,1920,2320,2880,3520,3760
+700,800,950,2000,2190,2280,2760,3420,4180,4470
+800,900,1125,2125,2375,2475,3150,4050,4950,5300
+900,1000,1400,2525,2950,3075,3925,5050,6150,6575
+1000,1100,1800,3250,3775,3950,5050,6475,7925,8450
+1100,1200,2075,3725,4350,4575,5800,7475,9125,9750
+1200,1300,2275,4100,4775,5000,6375,8200,10000,10700
+1300,1400,2475,4450,5200,5450,6925,8900,10900,11625
+1400,1500,2625,4725,5525,5775,7350,9450,11550,12350
+1500,1600,2800,5050,5875,6150,7850,10075,12325,13150
+1600,1700,2900,5225,6100,6375,8125,10450,12750,13625
+1700,1800,3175,5725,6675,6975,8900,11425,13975,14925
+1800,1900,3450,6200,7250,7600,9650,12425,15175,16225
+1900,2000,3750,6750,7875,8250,10500,13500,16500,17625
+2000,2100,4050,7300,8500,8900,11350,14575,17825,19025
+2100,2200,4275,7700,8975,9400,11975,15450,18800,20100
+2200,2300,4450,7975,9300,9725,12400,15925,19475,20800
+2300,2400,4600,8375,9775,10225,13025,16750,20450,21850
+2400,2500,4825,8675,10125,10625,13500,17375,21225,22675
+2500,2600,5075,9125,10650,11175,14200,18275,22325,23850
+2600,2700,5275,9500,11075,11600,14775,19000,23200,24800
+2700,2800,5625,10125,11825,12375,15750,20250,24750,26450
+2800,2900,6000,10800,12600,13200,16800,21600,26400,28200
+2900,3000,6300,11350,13225,13850,17650,22675,27725,29600
+3000,3100,6600,11875,13850,14525,18475,23750,29050,31025
+3100,3200,6875,12375,14450,15125,19250,24750,30250,32325
+3200,3300,7125,12825,14975,15675,19950,25650,31350,33500
+3300,3400,7400,13325,15550,16275,20725,26650,32550,34775
+3400,3500,7725,13900,16225,17000,21625,27800,34000,36300
+3500,3600,8050,14500,16900,17700,22550,28975,35425,37825
+3600,3700,8525,15350,17900,18750,23875,30700,37500,40075
+3700,3800,8850,15925,18575,19475,24775,31850,38950,41600
+3800,3900,9200,16550,19325,20250,25750,33125,40475,43250
+3900,4000,9475,17050,19900,20850,26525,34100,41700,44525
+4000,4100,9625,17325,20225,21175,26950,34650,42350,45250
+4100,4200,9975,17950,20950,21950,27925,35900,43900,46875
+4200,4300,10500,18900,22150,23200,29550,37975,46425,49575
+4300,4400,10850,19525,22775,23875,30375,39050,47750,50000
+4400,4500,11075,19925,23250,24375,31000,39875,48725,50000
+4500,4600,11350,20425,23825,24975,31775,40850,49950,50000
+4600,4700,11475,20650,24100,25250,32125,41300,50000,50000
+4700,4800,11875,21375,24960,26125,33250,42750,50000,50000
+4800,4900,12300,22150,25825,27050,34450,44275,50000,50000
+4900,5000,12625,22725,26525,27775,35350,45450,50000,50000
+5000,5100,12750,22950,26775,28050,35700,45950,50000,50000
+5100,5200,13075,23525,27450,28775,36600,47075,50000,50000
+5200,5300,13275,23900,27875,29200,37175,47800,50000,50000
+5300,5400,13600,24475,28550,29925,38075,48925,50000,50000
+5400,5500,13675,24625,28725,30075,38300,49225,50000,50000
+5500,5600,13975,25150,29350,30750,39125,50000,50000,50000
+5600,5700,14200,25550,29825,31250,39750,50000,50000,50000
+5700,5800,14525,26150,30500,31950,40675,50000,50000,50000
+5800,5900,14675,26425,30825,32275,41100,50000,50000,50000
+5900,6000,15000,27000,31500,33000,42000,50000,50000,50000
+6000,6100,15150,27275,31825,33325,42425,50000,50000,50000
+6100,6200,15475,27850,32500,34050,43325,50000,50000,50000
+6200,6300,15650,28175,32875,34425,43825,50000,50000,50000
+6300,6400,15975,28750,33550,35150,44725,50000,50000,50000
+6400,6500,16200,29150,34025,35650,45350,50000,50000,50000
+6500,6600,16525,29750,34700,36350,46275,50000,50000,50000
+6600,6700,16650,29975,34975,36625,46625,50000,50000,50000
+6700,6800,16950,30500,35600,37300,47450,50000,50000,50000
+6800,6900,17100,30775,35900,37625,47875,50000,50000,50000
+6900,7000,17375,31275,36500,38225,48650,50000,50000,50000
+7000,7200,17650,31775,37075,38825,49425,50000,50000,50000
+7200,7400,18125,32625,38075,39875,50000,50000,50000,50000
+7400,7600,18550,33400,38950,40800,50000,50000,50000,50000
+7600,7800,19050,34300,40000,41900,50000,50000,50000,50000
+7800,8000,19425,34975,40800,42725,50000,50000,50000,50000
+8000,8200,20025,36050,42050,44050,50000,50000,50000,50000
+8200,8400,20425,36775,42900,44925,50000,50000,50000,50000
+8400,8700,21475,38650,45100,47250,50000,50000,50000,50000
+8700,9000,21925,39475,46050,48225,50000,50000,50000,50000
+9000,9300,22900,41225,48100,50000,50000,50000,50000,50000
+9300,9600,23375,42075,49100,50000,50000,50000,50000,50000
+9600,9900,23925,43075,50000,50000,50000,50000,50000,50000
+9900,10200,24875,44775,50000,50000,50000,50000,50000,50000
+10200,10500,25400,45725,50000,50000,50000,50000,50000,50000
+10500,10800,26325,47375,50000,50000,50000,50000,50000,50000
+10800,11100,27000,49325,50000,50000,50000,50000,50000,50000
+11100,11400,28125,50000,50000,50000,50000,50000,50000,50000
+11400,11700,28850,50000,50000,50000,50000,50000,50000,50000
+11700,12000,29575,50000,50000,50000,50000,50000,50000,50000
+12000,999999,30300,50000,50000,50000,50000,50000,50000,50000`,
+lay:`1,15,15,30,30,40,40,50,70,70
+15,30,25,60,60,60,70,90,110,120
+30,90,30,70,70,70,90,110,130,140
+90,150,50,100,100,100,150,175,225,225
+150,300,90,150,200,200,250,325,400,425
+300,450,140,250,300,300,400,500,625,650
+450,600,175,325,375,375,500,625,775,825
+600,750,225,400,475,500,625,800,1000,1050
+750,900,275,500,575,600,775,1000,1200,1300
+900,1200,325,575,675,725,900,1175,1425,1525
+1200,1500,425,775,900,925,1200,1525,1875,2000
+1500,1800,500,900,1050,1100,1400,1800,2200,2350
+1800,2100,525,950,1100,1150,1475,1900,2300,2475
+2100,2400,600,1075,1250,1325,1675,2150,2650,2825
+2400,2700,675,1225,1425,1475,1900,2425,2975,3175
+2700,3000,750,1350,1575,1650,2100,2700,3300,3525
+3000,3600,850,1525,1775,1875,2375,3050,3750,4000
+3600,4200,1050,1900,2200,2300,2950,3775,4625,4925
+4200,4800,1300,2350,2725,2850,3650,4675,5725,6100
+4800,5400,1575,2825,3300,3475,4400,5675,6925,7400
+5400,6000,1850,3325,3875,4075,5175,6650,8150,8700
+6000,6600,2025,3650,4250,4450,5675,7300,8900,9525
+6600,8100,2350,4225,4925,5175,6575,8450,10350,11050
+8100,9600,2775,5000,5825,6100,7775,10000,12200,13050
+9600,11100,3350,6025,7025,7375,9375,12050,14750,15750
+11100,12600,3900,7025,8200,8575,10925,14050,17150,18325
+12600,14100,4375,7875,9200,9625,12250,15750,19250,20575
+14100,15600,4950,8900,10400,10900,13850,17825,21775,23275
+15600,17100,5550,10000,11650,12200,15550,19975,24425,26075
+17100,18600,6225,11200,13075,13700,17425,22400,27400,29250
+18600,21000,7200,12950,15125,15850,20150,25925,31675,33850
+21000,23400,8325,14975,17475,18325,23300,29975,36625,39125
+23400,25800,9450,17000,19850,20800,26450,34025,41575,44425
+25800,28200,10975,19750,23050,24150,30725,39500,48300,51575
+28200,30600,12250,22050,25725,26950,34300,44100,53900,57575
+30600,33000,13200,23750,27725,29050,36950,47525,58075,62050
+33000,35400,14150,25475,29725,31125,39625,50950,62250,66500
+35400,39400,15450,27800,32450,34000,43250,55625,67975,72625
+39400,43400,17050,30700,35800,37500,47750,61375,75025,80125
+43400,47400,18650,33575,39175,41025,52225,67150,82050,87650
+47400,51400,20250,36450,42525,44550,56700,72900,89100,95175
+51400,57400,22450,40400,47150,49400,62850,80825,98775,100000
+57400,63400,24850,44725,52175,54675,69675,89450,100000,100000
+63400,69400,27250,49050,57225,59950,76300,98100,100000,100000
+69400,75400,29650,53375,62275,65225,83025,100000,100000,100000
+75400,999999,33500,60300,70350,73700,93800,100000,100000,100000`,
+hoan:`1,15,15,30,30,40,40,50,70,70
+15,30,25,60,60,60,70,90,110,120
+30,90,30,70,70,70,90,110,130,140
+90,150,50,100,100,100,150,175,225,225
+150,300,90,150,200,200,250,325,400,425
+300,450,140,250,300,300,400,500,625,650
+450,600,175,325,375,375,500,625,775,825
+600,750,225,400,475,500,625,800,1000,1050
+750,900,275,500,575,600,775,1000,1200,1300
+900,1200,325,575,675,725,900,1175,1425,1525
+1200,1500,425,775,900,925,1200,1525,1875,2000
+1500,1800,500,900,1050,1100,1400,1800,2200,2350
+1800,2100,525,950,1100,1150,1475,1900,2300,2475
+2100,2400,600,1075,1250,1325,1675,2150,2650,2825
+2400,2700,675,1225,1425,1475,1900,2425,2975,3175
+2700,3000,750,1350,1575,1650,2100,2700,3300,3525
+3000,3600,850,1525,1775,1875,2375,3050,3750,4000
+3600,4200,1050,1900,2200,2300,2950,3775,4625,4925
+4200,4800,1300,2350,2725,2850,3650,4675,5725,6100
+4800,5400,1575,2825,3300,3475,4400,5675,6925,7400
+5400,6000,1850,3325,3875,4075,5175,6650,8150,8700
+6000,6600,2025,3650,4250,4450,5675,7300,8900,9525
+6600,8100,2350,4225,4925,5175,6575,8450,10350,11050
+8100,9600,2775,5000,5825,6100,7775,10000,12200,13050
+9600,11100,3350,6025,7025,7375,9375,12050,14750,15750
+11100,12600,3900,7025,8200,8575,10925,14050,17150,18325
+12600,14100,4375,7875,9200,9625,12250,15750,19250,20575
+14100,15600,4950,8900,10400,10900,13850,17825,21775,23275
+15600,17100,5550,10000,11650,12200,15550,19975,24425,26075
+17100,18600,6225,11200,13075,13700,17425,22400,27400,29250
+18600,21000,7200,12950,15125,15850,20150,25925,31675,33850
+21000,23400,8325,14975,17475,18325,23300,29975,36625,39125
+23400,25800,9450,17000,19850,20800,26450,34025,41575,44425
+25800,28200,10975,19750,23050,24150,30725,39500,48300,51575
+28200,30600,12250,22050,25725,26950,34300,44100,53900,57575
+30600,33000,13200,23750,27725,29050,36950,47525,58075,62050
+33000,35400,14150,25475,29725,31125,39625,50950,62250,66500
+35400,39400,15450,27800,32450,34000,43250,55625,67975,72625
+39400,43400,17050,30700,35800,37500,47750,61375,75025,80125
+43400,47400,18650,33575,39175,41025,52225,67150,82050,87650
+47400,51400,20250,36450,42525,44550,56700,72900,89100,95175
+51400,57400,22450,40400,47150,49400,62850,80825,98775,100000
+57400,63400,24850,44725,52175,54675,69675,89450,100000,100000
+63400,69400,27250,49050,57225,59950,76300,98100,100000,100000
+69400,75400,29650,53375,62275,65225,83025,100000,100000,100000
+75400,999999,33500,60300,70350,73700,93800,100000,100000,100000`};
+const RATE_TABLE=Object.fromEntries(Object.entries(rates).map(([k,v])=>[k,v.split('\n').map(line=>line.split(',').map(Number))]));
+const $=s=>document.querySelector(s), fmt=n=>Math.round(n).toLocaleString('vi-VN')+' đ', num=n=>Number(n)||0, esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>{let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+let records=[];try{records=JSON.parse(localStorage.getItem('spx_records_v1')||'[]')}catch(e){};if(!Array.isArray(records))records=[];
+let page='giao',month=today().slice(0,7),pending=[],currentPreview='';
+function save(){try{localStorage.setItem('spx_records_v1',JSON.stringify(records))}catch(e){alert('Trình xem tệp trên iPhone không cho lưu dữ liệu lâu dài. Hãy mở app bằng Safari qua địa chỉ HTTPS để lưu nhật ký an toàn.')}}
+function monthly(type){return records.filter(r=>r.date.startsWith(month)&&(type==='tong'||r.type===type))}
+function sums(type){let a=Array(8).fill(0);monthly(type).forEach(r=>r.counts.forEach((n,i)=>a[i]+=num(n)));return a}
+function bracket(type,count){if(!count)return null;return RATE_TABLE[type].find((r,i,arr)=>count>=r[0]&&(count<r[1]||i===arr.length-1))||null}
+function reward(type,count,i){const r=bracket(type,count);return r?r[i+2]*1000:0}
+function total(type){return sums(type).reduce((a,n,i)=>a+reward(type,n,i),0)}
+function allTotal(){return ['giao','lay','hoan'].reduce((a,t)=>a+total(t),0)}
+function range(r){return r?(r[1]===999999?`${fmtInt(r[0])}+`:`${fmtInt(r[0])} - ${fmtInt(r[1])}`):'-'}
+function fmtInt(n){return n.toLocaleString('vi-VN')}
+function switchPage(p){page=p;render();window.scrollTo(0,0)}
+function render(){let nav=$('#nav');nav.innerHTML=TYPES.map(t=>`<button class="${page===t.id?'active':''}" onclick="switchPage('${t.id}')"><span>${t.icon}</span>${t.label}</button>`).join('');$('#page').innerHTML=page==='tong'?renderSummary():renderType(page)}
+function monthControl(){return `<input class="month" aria-label="Tháng" type="month" value="${month}" onchange="month=this.value;render()">`}
+function renderType(type){const t=TYPES.find(t=>t.id===type),a=sums(type),count=a.reduce((x,y)=>x+y,0),money=total(type),b=bracket(type,count),recs=monthly(type).sort((x,y)=>y.date.localeCompare(x.date));return `
+<div class="between" style="margin:0 0 14px"><b>${t.icon} ${t.label}</b>${monthControl()}</div>
+<div class="card"><div class="flex"><div class="iconcircle greenCircle">💵</div><div><div class="muted">Số tiền nhận được (Theo mốc)</div><div class="big">${fmt(money)}</div><div class="tag">Tổng ${fmtInt(count)} đơn • ${month.split('-').reverse().join('/')}</div></div></div><div class="divider"></div><h3>Chi tiết theo từng mức cân nặng</h3>${detailTable(type,a)}<p class="foot">* Tiền mỗi mức cân là giá trị tích lũy tại mốc đang đạt, không cộng lại các mốc trước.</p></div>
+<div class="btnrow"><button class="btn" onclick="choosePhotos()">✦ Quét từ ảnh</button><button class="btn secondary" onclick="openRates('${type}')">▤ Biểu phí SPX</button></div>
+<div class="card"><div class="between"><h2>Nhật ký sản lượng từng ngày</h2><b class="pill">${recs.length} ngày</b></div>${recs.length?recs.map(r=>renderRecord(r)).join(''):'<p class="muted">Chưa có dữ liệu. Nhấn “Quét từ ảnh” để bắt đầu.</p>'}</div>`}
+function detailTable(type,a){return `<div class="tablewrap"><table><thead><tr><th>Cân nặng</th><th>Số đơn</th><th>Mốc tính</th><th>Thành tiền</th></tr></thead><tbody>${a.map((n,i)=>`<tr class="${n?'':'dim'}"><td>${WEIGHTS[i]}</td><td>${fmtInt(n)}</td><td>${range(bracket(type,n))}</td><td>${fmt(reward(type,n,i))}</td></tr>`).join('')}</tbody></table></div>`}
+function renderRecord(r){const count=r.counts.reduce((a,b)=>a+num(b),0);return `<div class="entry"><div class="between"><b>📅 ${esc(r.date.split('-').reverse().join('/'))}</b><span class="pill">${count} đơn</span></div><div class="kicker" style="margin:8px 0">${r.counts.map((v,i)=>v?`${WEIGHTS[i]}: ${v}`:'').filter(Boolean).join(' • ')}</div><div class="rowactions"><button class="smallbtn" onclick="editRecord('${r.id}')">✎ Sửa</button><button class="smallbtn danger" onclick="deleteRecord('${r.id}')">🗑 Xóa</button></div></div>`}
+function renderSummary(){let count=['giao','lay','hoan'].reduce((a,t)=>a+sums(t).reduce((x,y)=>x+y,0),0);return `<div class="between" style="margin-bottom:15px"><h2 style="margin:0">Tổng kết sản lượng</h2>${monthControl()}</div><div class="card"><div class="muted">Tổng tiền thưởng trong tháng</div><div class="big">${fmt(allTotal())}</div><div class="statgrid" style="margin-top:15px">${['giao','lay','hoan'].map(t=>`<div class="stat"><strong>${fmtInt(sums(t).reduce((a,b)=>a+b,0))}</strong><small>${TYPES.find(x=>x.id===t).label}</small><div class="money" style="font-size:12px;margin-top:7px">${fmt(total(t))}</div></div>`).join('')}</div></div><div class="card"><h2>💡 Gợi ý số đơn cần đạt mốc tiếp theo</h2>${['giao','lay','hoan'].map(t=>renderHints(t)).join('')}</div><div class="card"><h2>📊 Báo cáo tháng</h2><p class="muted">${fmtInt(count)} đơn • ${monthly('tong').length} bản ghi</p><button class="btn green full" onclick="exportCSV()">↗ Xuất báo cáo Excel (CSV)</button></div><div class="btnrow"><button class="btn" onclick="choosePhotos()">✦ Quét ảnh SPX</button><button class="btn secondary" onclick="openRates()">Tra cứu biểu phí</button></div><div class="card"><h2>Nhật ký tất cả nghiệp vụ</h2>${monthly('tong').sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<div class="between entry"><div><b>${esc(r.date.split('-').reverse().join('/'))}</b><div class="muted">${TYPES.find(t=>t.id===r.type)?.label||r.type}</div></div><div><b>${r.counts.reduce((a,b)=>a+b,0)} đơn</b><div><button class="link" onclick="switchPage('${r.type}')">Xem</button></div></div></div>`).join('')||'<p class="muted">Chưa có dữ liệu.</p>'}</div>`}
+function renderHints(t){let a=sums(t),count=a.reduce((x,y)=>x+y,0),r=bracket(t,count);let hints=a.map((n,i)=>{let current=bracket(t,n);let next=RATE_TABLE[t].find(row=>row[0]>=(current?current[1]:1));if(!next)return '';let need=Math.max(0,next[0]-n),gain=next[i+2]*1000-reward(t,n,i);if(gain<=0)return '';return {i,n,need,gain,range:range(current),next:range(next)}}).filter(Boolean).sort((a,b)=>a.i-b.i);return `<div class="between"><b>${TYPES.find(x=>x.id===t).icon} ${TYPES.find(x=>x.id===t).label}</b><span class="tag">${fmt(total(t))} • ${count} đơn</span></div><div class="progress"><div style="width:${r?Math.max(2,Math.min(100,100*(count-r[0])/Math.max(1,r[1]-r[0]))):0}%"></div></div>${hints.length?hints.map(h=>`<div class="hint"><div><b>${WEIGHTS[h.i]}</b> (${h.n} đơn)<br><span class="kicker">Cần thêm ${h.need} đơn để đạt mốc ${h.next}</span></div><em>+${fmt(h.gain)}</em></div>`).join(''):'<p class="muted">Chưa có mốc tiếp theo.</p>'}<div class="divider"></div>`}
+function showModal(html){$('#modalRoot').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`}function closeModal(){$('#modalRoot').innerHTML=''}
+function choosePhotos(){$('#photoInput').value='';$('#photoInput').click()}
+function weightsEditor(values){return WEIGHTS.map((w,i)=>`<div class="weightrow"><label for="w${i}">${w}</label><input id="w${i}" type="number" min="0" step="1" value="${num(values[i])}"></div>`).join('')}
+function showReview(item,index){pending[index]=item;const total=item.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh SPX (${index+1}/${pending.length})</h2><button class="link" onclick="closeModal()">✕</button></div><p class="muted">OCR có thể nhận nhầm. Đối chiếu từng dòng với ảnh gốc trước khi lưu. Nếu tổng không khớp, app sẽ chặn lưu.</p>${item.preview?`<img class="preview" src="${item.preview}">`:''}<div class="field"><label>Ngày trên ảnh</label><input id="recordDate" type="date" value="${esc(item.date)}"></div><div class="field"><label>Nghiệp vụ</label><select id="recordType">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${item.type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>Số đơn theo mức cân</h3>${weightsEditor(item.counts)}${item.ocrDebug?`<details style="margin:12px 0"><summary>Chi tiết OCR V8 (${item.ocrCards||0} thẻ phát hiện)</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(item.ocrDebug)}</pre></details>`:''}<div id="sumNotice" class="notice ${item.expected===total?'success':''}">Tổng đọc được: <b>${total}</b> đơn. ${item.expected===null?'Không đọc được dòng tổng trên ảnh.':`Tổng SPX trên ảnh: <b>${item.expected}</b> đơn ${item.expected===total?'✓ Khớp':'⚠ Chưa khớp'}`}</div><div class="field"><label>Tổng đơn SPX hiển thị trên ảnh (để kiểm tra)</label><input id="expected" type="number" min="0" value="${item.expected??''}" placeholder="Không đọc được"></div><button class="btn full" onclick="saveReview(${index})">✓ Xác nhận và lưu</button><p class="foot">Nếu cùng ngày và nghiệp vụ đã tồn tại, app sẽ hỏi trước khi thay thế.</p>`)}
+document.addEventListener('input',function(e){if(!e.target.closest('.modal'))return;const n=document.getElementById('sumNotice');if(!n)return;const total=Array.from({length:8},(_,i)=>Number(document.getElementById('w'+i)?.value||0)).reduce((a,b)=>a+b,0);const expected=document.getElementById('expected')?.value; n.textContent='Tổng theo cân: '+total+' đơn. Tổng SPX trên ảnh: '+(expected||'chưa có')+' đơn. '+(expected!==''&&total===Number(expected)?'✓ Khớp':'⚠ Chưa khớp');n.classList.toggle('success',expected!==''&&total===Number(expected));});
+function saveReview(index){const date=$('#recordDate').value,type=$('#recordType').value,counts=WEIGHTS.map((_,i)=>Math.max(0,Math.floor(num($('#w'+i).value)))),expected=$('#expected').value===''?null:num($('#expected').value),sum=counts.reduce((a,b)=>a+b,0);if(!date){alert('Chưa có ngày.');return}if(expected===null){alert('Không đọc được tổng SPX trên ảnh. Hãy nhập tổng từ ảnh để đối chiếu trước khi lưu.');return;}if(expected!==sum){alert(`KHÔNG THỂ LƯU: Tổng theo cân (${sum}) khác tổng trên ảnh (${expected}). Hãy sửa số đơn hoặc quét lại ảnh.`);return;}let old=records.find(r=>r.date===date&&r.type===type);if(old&&!confirm(`Đã có ${TYPES.find(t=>t.id===type).label} ngày ${date}. Thay thế bản ghi cũ?`))return;records=records.filter(r=>!(r.date===date&&r.type===type));records.push({id:old?.id||String(Date.now())+'_'+index,date,type,counts});try{save()}catch(e){alert('Bộ nhớ trình duyệt đầy hoặc bị chặn: '+e.message);return}month=date.slice(0,7);let next=index+1;if(next<pending.length){showReview(pending[next],next)}else{pending=[];closeModal();switchPage(type)}}
+function editRecord(id){let r=records.find(r=>r.id===id);if(!r)return;pending=[{...r,expected:r.counts.reduce((a,b)=>a+b,0)}];showReview(pending[0],0)}
+function deleteRecord(id){if(!confirm('Xóa bản ghi này?'))return;records=records.filter(r=>r.id!==id);save();render()}
+function openRates(type=page==='tong'?'giao':page){if(!RATE_TABLE[type])type='giao';showModal(`<div class="between"><h2>Biểu phí SPX (nghìn đồng)</h2><button class="link" onclick="closeModal()">✕</button></div><div class="field"><select onchange="openRates(this.value)">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><div class="notice">Các ô là tổng tiền tại mốc, không phải số tiền cộng thêm ở mỗi mốc.</div><div class="scrollrates"><table><thead><tr><th>Từ</th><th>Đến</th>${WEIGHTS.map(w=>`<th>${w}</th>`).join('')}</tr></thead><tbody>${RATE_TABLE[type].map(r=>`<tr>${r.map((v,i)=>`<td>${i===1&&v===999999?'Trở lên':fmtInt(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`)}
+function exportCSV(){const rows=[['Ngày','Nghiệp vụ',...WEIGHTS,'Tổng đơn'],...records.filter(r=>r.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,TYPES.find(t=>t.id===r.type)?.label,...r.counts,r.counts.reduce((a,b)=>a+b,0)]),[],['Tháng',month],['Nghiệp vụ','Tổng đơn','Tiền thưởng (VND)'],...TYPES.slice(0,3).map(t=>[t.label,sums(t.id).reduce((a,b)=>a+b,0),total(t.id)]),['TỔNG', '',allTotal()]];const csv='\ufeff'+rows.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),`SPX_${month}.csv`)}
+function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function parseOCR(text){let s=text.replace(/\r/g,'').replace(/[–—]/g,'-');let type=/đã\s*(?:trả\s*hàng|hoàn)|trả\s*hàng/i.test(s)?'hoan':/đã\s*lấy/i.test(s)?'lay':'giao';let date=today(),m=s.match(/(?:chi\s*tiết\s*đơn\s*theo\s*ngày|theo\s*ngày)[^\n]*?([0-3]?\d)[\/\-.]([01]?\d)(?:[\/\-.](20\d{2}))?/i);if(m){const year=m[3]||month.slice(0,4);const d=String(m[1]).padStart(2,'0'),mo=String(m[2]).padStart(2,'0');if(+mo<=12&&+d<=31)date=`${year}-${mo}-${d}`}
+let expected=null;const totalMatch=s.match(/t[oôổ]ng\s*([\d., ]+)\s*(?:đ[oơ]n|don)/i);if(totalMatch)expected=Number(totalMatch[1].replace(/\D/g,''));
+// Tìm mỗi thẻ theo cặp khoảng khối lượng + số đơn, kể cả khi OCR đảo vị trí theo dòng.
+const counts=Array(8).fill(0);const lines=s.split('\n').map(x=>x.trim()).filter(Boolean);const starts=[0,2.001,4.001,6.001,8.001,10.001,12.001,15.001];let found=0;
+for(let i=0;i<lines.length;i++){let l=lines[i];let w=l.match(/(\d{1,2})[.,](\d{3})\s*[-~]\s*(\d{1,2})[.,](\d{3})/);if(!w)continue;let lower=Number(w[1]+'.'+w[2]);let idx=starts.findIndex(x=>Math.abs(x-lower)<.12);if(idx<0)continue;let candidates=[];for(let j=Math.max(0,i-2);j<=Math.min(lines.length-1,i+3);j++){if(/t[oôổ]ng/i.test(lines[j]))continue;let matches=[...lines[j].matchAll(/(\d{1,6})\s*(?:đ[oơ]n\s*h[aà]ng|đ[oơ]n|don\s*hang)/gi)];for(let n of matches)candidates.push({value:Number(n[1]),distance:Math.abs(j-i)})}candidates.sort((a,b)=>a.distance-b.distance);if(candidates.length){counts[idx]=candidates[0].value;found++}}
+// Fallback: trên một số bản OCR, số đơn nằm trước dòng khối lượng.
+return {date,type,counts,expected,found,text:s}}
+// OCR riêng cột số lượng bên phải, giữ thứ tự các thẻ cân nặng trên ảnh SPX.
+// Không dùng số ví dụ cố định; mọi số đều được đọc từ ảnh vừa tải lên.
+// Đọc theo từng thẻ độc lập thay vì OCR cả cột: tránh bỏ sót thẻ thứ hai.
+// V5: identify actual weight labels first, then associate count in SAME visual card.
+// Never assume cards are consecutive weight bins; SPX hides zero-count bins.
+function weightIndex(raw){
+ const t=String(raw||'').replace(/[Oo]/g,'0').replace(/[,]/g,'.').replace(/[–—~]/g,'-');
+ const over=t.match(/15\s*\.\s*0{0,2}1\s*-\s*(?:999999|999[.,]?999)/);if(over)return 7;
+ const matches=[...t.matchAll(/(\d{1,2})\s*\.\s*(\d{2,3})\s*-\s*(\d{1,2})\s*\.\s*(\d{2,3})/g)];
+ for(const m of matches){const low=Number(m[1])+Number(m[2])/Math.pow(10,m[2].length);const high=Number(m[3])+Number(m[4])/Math.pow(10,m[4].length);const starts=[0,2,4,6,8,10,12,15];let ix=starts.findIndex((v,i)=>Math.abs(v-low)<.14 && (i===7||Math.abs([2,4,6,8,10,12,15][i]-high)<.14));if(ix>=0)return ix;}
+ return -1;
+}
+function countFromText(text){const t=String(text||'').replace(/\n/g,' ');const m=t.match(/(?:^|\s)(\d{1,6})\s*(?:đ[oơ]n|d[oơ]n|don)/i);return m?Number(m[1]):null}
+async function imageObj(data){const img=new Image();img.src=data;await img.decode();return img}
+async function cropOCR(worker,img,x,y,w,h,scale=2.5){const c=document.createElement('canvas');c.width=Math.round(w*scale);c.height=Math.round(h*scale);const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,x,y,w,h,0,0,c.width,c.height);return (await worker.recognize(c.toDataURL('image/png'))).data.text||''}
+// V8: nhận diện dựa trên NHÃN CÂN của từng thẻ, không gán theo vị trí/thứ tự.
+// Thẻ cuối bị cắt vẫn được xử lý; ảnh không đủ thông tin thì giữ cảnh báo, không đoán.
+async function scanMappedCards(worker,data,expected){
+ const img=await imageObj(data),W=img.width,H=img.height;
+ const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+ const pixels=ctx.getImageData(0,0,W,H).data;
+ const hits=[];
+ const step=Math.max(2,Math.floor(W/180));
+ // Tìm đường viền ngang theo toàn bộ khu vực nội dung, kể cả thẻ cuối.
+ for(let y=Math.floor(H*.22);y<Math.floor(H*.985);y+=2){let count=0,samples=0;
+  for(let x=Math.floor(W*.075);x<Math.floor(W*.92);x+=step){let k=(y*W+x)*4,r=pixels[k],g=pixels[k+1],b=pixels[k+2];
+   if(r>207&&r<249&&Math.abs(r-g)<13&&Math.abs(g-b)<13)count++;samples++}
+  if(count>samples*.64)hits.push(y);
+ }
+ const groups=[];for(const y of hits){if(!groups.length||y-groups[groups.length-1].at(-1)>10)groups.push([y]);else groups[groups.length-1].push(y)}
+ const lines=groups.map(g=>Math.round(g.reduce((a,b)=>a+b,0)/g.length));
+ const cards=[];
+ for(let i=0;i+1<lines.length;i++){const d=lines[i+1]-lines[i];if(d>W*.14&&d<W*.34)cards.push([lines[i],lines[i+1]]);}
+ const heights=cards.map(c=>c[1]-c[0]).sort((a,b)=>a-b);
+ const typical=heights.length?heights[Math.floor(heights.length/2)]:Math.round(W*.23);
+ // Bổ sung thẻ đang lộ ra một phần ở đáy màn hình.
+ for(const y of lines){if(y<H*.28||y>H*.97||cards.some(c=>Math.abs(c[0]-y)<12))continue;
+  const remain=H-y;if(remain>Math.min(typical*.30,W*.085))cards.push([y,Math.min(H-2,y+typical)]);
+ }
+ cards.sort((a,b)=>a[0]-b[0]);
+ const counts=Array(8).fill(0),seen=new Set(),debug=[];
+ for(const [top,bottom] of cards){let h=bottom-top;if(top<H*.22||h<W*.065)continue;
+  // Quét toàn bộ chiều cao thẻ, không bỏ 17% đầu/cuối như V7.
+  const cropY=Math.max(0,top+2),cropH=Math.min(H-cropY,Math.max(20,h-3));
+  const left=await cropOCR(worker,img,Math.round(W*.08),cropY,Math.round(W*.55),cropH,3);
+  let idx=weightIndex(left);
+  // OCR toàn thẻ nếu nhãn bên trái không đọc rõ.
+  let whole='';if(idx<0){whole=await cropOCR(worker,img,Math.round(W*.07),cropY,Math.round(W*.86),cropH,2.5);idx=weightIndex(whole)}
+  if(idx<0){debug.push('Không nhận được nhãn cân tại y='+top+': '+left.trim().replace(/\n/g,' '));continue}
+  const right=await cropOCR(worker,img,Math.round(W*.56),cropY,Math.round(W*.38),cropH,3.2);
+  let value=countFromText(right);
+  if(value===null&&whole)value=countFromText(whole);
+  if(value===null){const m=right.match(/(?:^|\s)(\d{1,5})(?:\s|$)/);if(m)value=Number(m[1])}
+  if(value!==null&&!seen.has(idx)){counts[idx]=value;seen.add(idx)}
+  debug.push(WEIGHTS[idx]+': '+(value===null?'KHÔNG ĐỌC ĐƯỢC':value)+' | '+right.trim().replace(/\n/g,' '));
+ }
+ return {counts,found:seen.size,debug:debug.join('\n'),cards:cards.length,valid:seen.size>0,matched:expected!==null&&counts.reduce((a,b)=>a+b,0)===expected};
+}
+async function readImage(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
+async function loadTesseract(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được bộ OCR. Kiểm tra kết nối Internet.'));document.head.appendChild(s)})}
+async function selectedTab(data){try{let im=new Image();im.src=data;await im.decode();let c=document.createElement('canvas');c.width=420;c.height=Math.round(im.height*420/im.width);let ctx=c.getContext('2d');ctx.drawImage(im,0,0,c.width,c.height);let pixels=ctx.getImageData(0,0,c.width,Math.floor(c.height*.32)).data;let bands=[0,0,0];for(let y=Math.floor(c.height*.11);y<Math.floor(c.height*.28);y++)for(let x=45;x<300;x++){let k=(y*c.width+x)*4,r=pixels[k],g=pixels[k+1],b=pixels[k+2];if(r>170&&r>g*1.4&&g>b*.85&&g<150){bands[Math.min(2,Math.floor((x-45)/85))]++}}let max=Math.max(...bands);return max>12?['giao','lay','hoan'][bands.indexOf(max)]:null}catch(e){return null}}
+async function processPhotos(files){if(!files.length)return;showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">V9: Nhận cả nhóm trên 15 kg và quét đủ 8 mốc cân theo nhãn thực tế, nhận thẻ sát mép ảnh, kiểm tra tổng trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị…</p>`);let worker=null;try{await loadTesseract();worker=await Tesseract.createWorker('vie+eng',1,{logger:m=>{let p=$('#ocrProgress');if(p&&m.progress)p.value=Math.round(m.progress*100);let el=$('#ocrStatus');if(el)el.textContent=`${m.status||'Đang nhận diện'} ${m.progress?Math.round(m.progress*100)+'%':''}`}});let results=[];for(let i=0;i<files.length;i++){const data=await readImage(files[i]);let el=$('#ocrStatus');if(el)el.textContent=`Đang đọc các thẻ ảnh ${i+1}/${files.length}. Có thể mất 1–2 phút…`;const out=await worker.recognize(data);const parsed=parseOCR(out.data.text);const mapped=await scanMappedCards(worker,data,parsed.expected);parsed.counts=mapped.counts;parsed.found=mapped.found;parsed.ocrDebug=mapped.debug;
+ // Cross-check with the full-image OCR. Only supplement a missing weight when
+ // the full text explicitly identifies that weight and its own count.
+ if(parsed.expected!==null && parsed.counts.reduce((a,b)=>a+b,0)!==parsed.expected){
+   const candidate=parseOCR(out.data.text);
+   const candidateSum=candidate.counts.reduce((a,b)=>a+b,0);
+   const merged=parsed.counts.map((v,j)=>v||candidate.counts[j]||0);
+   if(candidateSum===parsed.expected && candidate.found>=mapped.found){parsed.counts=candidate.counts;parsed.ocrDebug+='\nDùng kết quả toàn ảnh vì khớp tổng SPX.';}
+   else if(merged.reduce((a,b)=>a+b,0)===parsed.expected){parsed.counts=merged;parsed.ocrDebug+='\nBổ sung thẻ bị cắt từ OCR toàn ảnh.';}
+ }
+ parsed.found=parsed.counts.filter(v=>v>0).length;parsed.ocrCards=mapped.cards;parsed.type=(await selectedTab(data))||parsed.type;results.push({...parsed,preview:data});}pending=results;if(results.length)showReview(results[0],0);else closeModal()}catch(e){showModal(`<h2>Không thể quét ảnh</h2><div class="notice">${esc(e.message)}</div><button class="btn full" onclick="closeModal()">Đóng</button>`)}finally{if(worker)await worker.terminate()}}
+$('#photoInput').addEventListener('change',e=>processPhotos([...e.target.files]));render();
+</script></body></html>
