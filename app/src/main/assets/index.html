@@ -387,8 +387,36 @@ window.spxNativeStart=function(n){
 };
 window.spxNativeCancelled=function(){};
 window.spxNativeError=function(msg){spxNativeErrors.push(msg);const e=$('#ocrStatus');if(e)e.textContent=msg};
+// Đọc tổng độc lập: ML Kit có thể tách "Tổng" và "119 đơn hàng" thành 2 dòng.
+function spxReadTotal(result){
+ const raw=String(result.text||'');
+ const normalize=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').replace(/[Oo](?=\d)/g,'0');
+ const getNumber=t=>{const m=normalize(t).match(/(?:^|\s)(\d{1,6})\s*(?:don\s*hang|don\b)/i);return m?Number(m[1]):null};
+ // Ưu tiên nguyên dòng, không lấy các số đơn ở thẻ cân.
+ for(const line of raw.split(/\n/)){
+  const t=normalize(line).replace(/\s+/g,' ');
+  const m=t.match(/\btong\s*[:：-]?\s*(\d{1,6})\s*(?:don\s*hang|don\b)/i);
+  if(m)return Number(m[1]);
+ }
+ const lines=(result.lines||[]).filter(x=>x&&x.text).slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+ const width=result.width||1;
+ const titles=lines.filter(x=>/\btong\b/i.test(normalize(x.text))&&!/tong\s*(?:ket|tien|hop)/i.test(normalize(x.text)));
+ for(const title of titles){
+  // Chỉ ghép các mảnh chữ cùng hàng hoặc ngay dưới chữ Tổng.
+  const nearby=lines.filter(x=>x!==title && x.y>=title.y-title.h*.8 && x.y<=title.y+Math.max(title.h*2.8,width*.065) && x.x>=title.x-title.w*.3)
+    .sort((a,b)=>Math.abs(a.y-title.y)-Math.abs(b.y-title.y)||a.x-b.x);
+  for(const x of nearby){const n=getNumber(x.text);if(n!==null)return n;}
+  const combined=[title,...nearby].sort((a,b)=>a.y-b.y||a.x-b.x).map(x=>x.text).join(' ');
+  const m=normalize(combined).match(/\btong\s*[:：-]?\s*(\d{1,6})\s*(?:don\s*hang|don\b)/i);
+  if(m)return Number(m[1]);
+ }
+ // Trường hợp ML Kit ghép xuống dòng: chỉ nối khi Tổng đứng ngay trước số đơn.
+ const m=normalize(raw).replace(/\s+/g,' ').match(/\btong\s*[:：-]?\s*(\d{1,6})\s*(?:don\s*hang|don\b)/i);
+ return m?Number(m[1]):null;
+}
 function spxNativeParse(result){
  const parsed=parseOCR(result.text||'');
+ parsed.expected=spxReadTotal(result);
  // ML Kit chỉ trả chữ của cả 3 tab, không trả tab được gạch chân.
  // Giữ đúng nghiệp vụ mà người dùng đang mở thay vì đoán theo chữ 'Đã trả hàng'.
  parsed.type=spxScanType||'giao';
@@ -421,7 +449,7 @@ function spxNativeParse(result){
  }else parsed.counts=counts;
  parsed.found=recognized.size;
  parsed.ocrCards=recognized.size;
- parsed.ocrDebug='ML Kit Native (1 lượt OCR):\n'+debug.join('\n');
+ parsed.ocrDebug='ML Kit Native (1 lượt OCR):\n'+debug.join('\n')+'\nTổng SPX OCR: '+(parsed.expected===null?'chưa nhận dạng':parsed.expected);
  if(parsed.expected===null)parsed.ocrDebug+='\nCHƯA ĐỌC ĐƯỢC TỔNG SPX: nhập từ ảnh trước khi lưu.';
  else if(parsed.counts.reduce((a,b)=>a+b,0)!==parsed.expected)parsed.ocrDebug+='\nTỔNG CHƯA KHỚP: cần kiểm tra thủ công.';
  parsed.preview=result.preview||'';
