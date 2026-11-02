@@ -299,16 +299,81 @@ async function scanMappedCards(worker,data,expected){
 async function readImage(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
 async function loadTesseract(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được bộ OCR. Kiểm tra kết nối Internet.'));document.head.appendChild(s)})}
 async function selectedTab(data){try{let im=new Image();im.src=data;await im.decode();let c=document.createElement('canvas');c.width=420;c.height=Math.round(im.height*420/im.width);let ctx=c.getContext('2d');ctx.drawImage(im,0,0,c.width,c.height);let pixels=ctx.getImageData(0,0,c.width,Math.floor(c.height*.32)).data;let bands=[0,0,0];for(let y=Math.floor(c.height*.11);y<Math.floor(c.height*.28);y++)for(let x=45;x<300;x++){let k=(y*c.width+x)*4,r=pixels[k],g=pixels[k+1],b=pixels[k+2];if(r>170&&r>g*1.4&&g>b*.85&&g<150){bands[Math.min(2,Math.floor((x-45)/85))]++}}let max=Math.max(...bands);return max>12?['giao','lay','hoan'][bands.indexOf(max)]:null}catch(e){return null}}
-async function processPhotos(files){if(!files.length)return;showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">V9: Nhận cả nhóm trên 15 kg và quét đủ 8 mốc cân theo nhãn thực tế, nhận thẻ sát mép ảnh, kiểm tra tổng trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị…</p>`);let worker=null;try{await loadTesseract();worker=await Tesseract.createWorker('vie+eng',1,{logger:m=>{let p=$('#ocrProgress');if(p&&m.progress)p.value=Math.round(m.progress*100);let el=$('#ocrStatus');if(el)el.textContent=`${m.status||'Đang nhận diện'} ${m.progress?Math.round(m.progress*100)+'%':''}`}});let results=[];for(let i=0;i<files.length;i++){const data=await readImage(files[i]);let el=$('#ocrStatus');if(el)el.textContent=`Đang đọc các thẻ ảnh ${i+1}/${files.length}. Có thể mất 1–2 phút…`;const out=await worker.recognize(data);const parsed=parseOCR(out.data.text);const mapped=await scanMappedCards(worker,data,parsed.expected);parsed.counts=mapped.counts;parsed.found=mapped.found;parsed.ocrDebug=mapped.debug;
- // Cross-check with the full-image OCR. Only supplement a missing weight when
- // the full text explicitly identifies that weight and its own count.
- if(parsed.expected!==null && parsed.counts.reduce((a,b)=>a+b,0)!==parsed.expected){
-   const candidate=parseOCR(out.data.text);
-   const candidateSum=candidate.counts.reduce((a,b)=>a+b,0);
-   const merged=parsed.counts.map((v,j)=>v||candidate.counts[j]||0);
-   if(candidateSum===parsed.expected && candidate.found>=mapped.found){parsed.counts=candidate.counts;parsed.ocrDebug+='\nDùng kết quả toàn ảnh vì khớp tổng SPX.';}
-   else if(merged.reduce((a,b)=>a+b,0)===parsed.expected){parsed.counts=merged;parsed.ocrDebug+='\nBổ sung thẻ bị cắt từ OCR toàn ảnh.';}
+// SPX V9 FAST OCR: một lượt toàn ảnh; chỉ quét từng thẻ khi chưa đủ tin cậy.
+// Tái sử dụng worker giữa các lần chọn ảnh để tránh tải lại dữ liệu ngôn ngữ.
+let spxOCRWorkerPromise=null;
+let spxOCRBusy=false;
+async function getSPXOCRWorker(){
+ if(!spxOCRWorkerPromise){
+  spxOCRWorkerPromise=(async()=>{
+   await loadTesseract();
+   return Tesseract.createWorker('vie+eng',1,{logger:m=>{
+    const p=$('#ocrProgress'),el=$('#ocrStatus');
+    if(p && typeof m.progress==='number')p.value=Math.round(m.progress*100);
+    if(el && m.status)el.textContent=m.status+(typeof m.progress==='number'?' '+Math.round(m.progress*100)+'%':'');
+   }});
+  })().catch(e=>{spxOCRWorkerPromise=null;throw e});
  }
- parsed.found=parsed.counts.filter(v=>v>0).length;parsed.ocrCards=mapped.cards;parsed.type=(await selectedTab(data))||parsed.type;results.push({...parsed,preview:data});}pending=results;if(results.length)showReview(results[0],0);else closeModal()}catch(e){showModal(`<h2>Không thể quét ảnh</h2><div class="notice">${esc(e.message)}</div><button class="btn full" onclick="closeModal()">Đóng</button>`)}finally{if(worker)await worker.terminate()}}
+ return spxOCRWorkerPromise;
+}
+function spxSetStatus(message){const el=$('#ocrStatus');if(el)el.textContent=message}
+function spxSum(counts){return counts.reduce((a,b)=>a+(Number(b)||0),0)}
+function spxValidCounts(parsed){
+ return parsed.expected!==null && Number.isInteger(parsed.expected) && parsed.expected>=0 &&
+  Array.isArray(parsed.counts) && parsed.counts.length===8 &&
+  parsed.counts.every(n=>Number.isInteger(n)&&n>=0) &&
+  spxSum(parsed.counts)===parsed.expected && (parsed.found>0 || parsed.expected===0);
+}
+async function processPhotos(files){
+ if(!files.length || spxOCRBusy)return;
+ spxOCRBusy=true;
+ showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">Fast OCR: đọc 8 mốc cân, chỉ quét bổ sung khi cần và luôn đối chiếu tổng đơn trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị OCR…</p>`);
+ try{
+  const worker=await getSPXOCRWorker();
+  const results=[];
+  for(let i=0;i<files.length;i++){
+   spxSetStatus(`Đang quét toàn ảnh ${i+1}/${files.length}…`);
+   const data=await readImage(files[i]);
+   const out=await worker.recognize(data);
+   const parsed=parseOCR(out.data.text||'');
+   parsed.ocrCards=0;
+   parsed.ocrDebug='';
+   // Đường nhanh: chỉ chấp nhận khi đã đọc được tổng SPX và các nhãn cân có số đơn,
+   // đồng thời tổng 8 mốc khớp chính xác. Không tự suy diễn mốc cân bị ẩn.
+   if(spxValidCounts(parsed)){
+    parsed.ocrDebug='Fast OCR: OCR toàn ảnh đã khớp tổng SPX; không cần quét lại từng thẻ.';
+   }else{
+    spxSetStatus(`Đang kiểm tra từng thẻ cân ${i+1}/${files.length} vì tổng chưa khớp…`);
+    const mapped=await scanMappedCards(worker,data,parsed.expected);
+    const fullCounts=parsed.counts.slice();
+    const fullFound=parsed.found;
+    parsed.counts=mapped.counts;
+    parsed.found=mapped.found;
+    parsed.ocrCards=mapped.cards;
+    parsed.ocrDebug=mapped.debug;
+    // Không lấy số từ thẻ khác để lấp mốc thiếu nếu chưa xác minh được tổng.
+    if(parsed.expected!==null && spxSum(parsed.counts)!==parsed.expected){
+     const merged=parsed.counts.map((v,j)=>v||fullCounts[j]||0);
+     if(spxSum(fullCounts)===parsed.expected && fullFound>0){
+      parsed.counts=fullCounts;
+      parsed.ocrDebug+='\nDùng toàn ảnh: đã khớp tổng SPX.';
+     }else if(spxSum(merged)===parsed.expected){
+      parsed.counts=merged;
+      parsed.ocrDebug+='\nBổ sung từ toàn ảnh: đã khớp tổng SPX; cần kiểm tra lại nhãn cân.';
+     }else{
+      parsed.ocrDebug+='\nCẢNH BÁO: Tổng chưa khớp; kiểm tra thủ công đủ 8 mốc trước khi lưu.';
+     }
+    }
+   }
+   parsed.found=parsed.counts.filter(v=>v>0).length;
+   parsed.type=(await selectedTab(data))||parsed.type;
+   results.push({...parsed,preview:data});
+  }
+  pending=results;
+  if(results.length)showReview(results[0],0);else closeModal();
+ }catch(e){
+  showModal(`<h2>Không thể quét ảnh</h2><div class="notice">${esc(e&&e.message||String(e))}</div><button class="btn full" onclick="closeModal()">Đóng</button>`);
+ }finally{spxOCRBusy=false}
+}
 $('#photoInput').addEventListener('change',e=>processPhotos([...e.target.files]));render();
 </script></body></html>
