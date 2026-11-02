@@ -1,0 +1,12 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.spx.v9'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.spx.v9'
+        minSdk 24
+        targetSdk 35
+        versionCode 9
+        versionName '9.0'
+    }
+}
