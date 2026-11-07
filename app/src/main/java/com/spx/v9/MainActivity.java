@@ -129,6 +129,7 @@ public class MainActivity extends Activity {
                      obj.put("preview", preview);
                      // Detect active tab from its orange underline in the original screenshot.
                      obj.put("activeType", detectActiveTab(preview));
+                     obj.put("spxDetectorVersion", "SPX-TAB-20261108");
                     done++;
                     runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
                 } catch (Exception e) { sendError("Lỗi chuyển kết quả: " + e.getMessage()); }
