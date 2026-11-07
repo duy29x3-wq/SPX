@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.graphics.Matrix;
 import android.util.Base64;
 import android.util.Log;
 import android.view.WindowManager;
@@ -100,46 +101,148 @@ public class MainActivity extends Activity {
         processNext();
     }
 
+    private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V3";
     private void processNext() {
         if (queue.isEmpty()) { runJS("window.spxNativeDone&&window.spxNativeDone()"); return; }
         Uri uri = queue.remove(0);
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
             recognizer.process(image).addOnSuccessListener(result -> {
-                try {
-                    JSONObject obj = new JSONObject();
-                    obj.put("text", result.getText());
-                    obj.put("width", image.getWidth());
-                    obj.put("height", image.getHeight());
-                    JSONArray lines = new JSONArray();
-                    for (Text.TextBlock block : result.getTextBlocks()) {
-                        for (Text.Line line : block.getLines()) {
-                            Rect r = line.getBoundingBox();
-                            if (r == null) continue;
-                            JSONObject item = new JSONObject();
-                            item.put("text", line.getText());
-                            item.put("x", r.left); item.put("y", r.top);
-                            item.put("w", r.width()); item.put("h", r.height());
-                            lines.put(item);
-                        }
-                    }
-                    obj.put("lines", lines);
-                    // Preview is only for the user's manual verification, not OCR.
-                    String preview = makePreview(uri);
-                     obj.put("preview", preview);
-                     // Detect active tab from its orange underline in the original screenshot.
-                     obj.put("activeType", detectActiveTab(uri));
-                     obj.put("spxDetectorVersion", "SPX-TAB-ORIGINAL-20261108-V2");
-                    done++;
-                    runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
-                } catch (Exception e) { sendError("Lỗi chuyển kết quả: " + e.getMessage()); }
-                processNext();
+                // Only run a second pass when the full-screen OCR missed the total header.
+                if (hasTotalHeader(result.getText())) {
+                    deliverResult(uri, image, result, null, null);
+                } else {
+                    scanTotalRegion(uri, image, result);
+                }
             }).addOnFailureListener(e -> {
                 sendError("Không đọc được ảnh: " + e.getMessage());
                 done++;
                 processNext();
             });
         } catch (Exception e) { sendError("Ảnh không hợp lệ: " + e.getMessage()); done++; processNext(); }
+    }
+
+    private boolean hasTotalHeader(String text) {
+        if (text == null) return false;
+        for (String line : text.split("\\r?\\n")) {
+            if (line.toLowerCase(java.util.Locale.ROOT).contains("tổng")
+                    && line.matches("(?s).*\\d+.*")) return true;
+        }
+        return false;
+    }
+
+    private void scanTotalRegion(Uri uri, InputImage image, Text fullResult) {
+        Bitmap source = null;
+        try {
+            // Use a decoded image in its upright orientation. The crop targets the
+            // total label below the three tabs, not the orange underline itself.
+            source = loadUprightBitmap(uri);
+            if (source == null) { deliverResult(uri, image, fullResult, null, null); return; }
+            int w = source.getWidth(), h = source.getHeight();
+            int left = Math.max(0, Math.round(w * 0.035f));
+            int top = Math.max(0, Math.round(h * 0.205f));
+            int right = Math.min(w, Math.round(w * 0.97f));
+            int bottom = Math.min(h, Math.round(h * 0.315f));
+            if (right <= left || bottom <= top) {
+                source.recycle(); deliverResult(uri, image, fullResult, null, null); return;
+            }
+            Bitmap crop = Bitmap.createBitmap(source, left, top, right - left, bottom - top);
+            source.recycle();
+            int cw = crop.getWidth(), ch = crop.getHeight();
+            Bitmap enlarged = Bitmap.createScaledBitmap(crop, cw * 2, ch * 2, true);
+            crop.recycle();
+            recognizer.process(InputImage.fromBitmap(enlarged, 0))
+                    .addOnSuccessListener(extra -> {
+                        try { deliverResult(uri, image, fullResult, extra, new int[]{left, top, 2}); }
+                        finally { enlarged.recycle(); }
+                    })
+                    .addOnFailureListener(e -> {
+                        enlarged.recycle();
+                        deliverResult(uri, image, fullResult, null, null);
+                    });
+        } catch (Exception e) {
+            if (source != null && !source.isRecycled()) source.recycle();
+            Log.w("SPX", "Total-region OCR failed", e);
+            deliverResult(uri, image, fullResult, null, null);
+        }
+    }
+
+    private Bitmap loadUprightBitmap(Uri uri) throws Exception {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            BitmapFactory.decodeStream(is, null, bounds);
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        int sample = 1;
+        while (Math.max(bounds.outWidth / sample, bounds.outHeight / sample) > 2000) sample *= 2;
+        options.inSampleSize = sample;
+        Bitmap bitmap;
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            bitmap = BitmapFactory.decodeStream(is, null, options);
+        }
+        if (bitmap == null) return null;
+        int orientation = 1;
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            orientation = new android.media.ExifInterface(is).getAttributeInt(
+                    android.media.ExifInterface.TAG_ORIENTATION, 1);
+        } catch (Exception ignored) { }
+        int degrees = orientation == 3 ? 180 : orientation == 6 ? 90 : orientation == 8 ? 270 : 0;
+        if (degrees == 0) return bitmap;
+        Matrix m = new Matrix(); m.postRotate(degrees);
+        Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), m, true);
+        bitmap.recycle();
+        return rotated;
+    }
+
+    private void deliverResult(Uri uri, InputImage image, Text fullResult, Text extra, int[] offset) {
+        try {
+            JSONObject obj = new JSONObject();
+            String combined = fullResult.getText();
+            // Append only lines from the total-header crop, never overwrite the
+            // eight weight buckets already extracted from the original image.
+            if (extra != null && extra.getText() != null && !extra.getText().trim().isEmpty()) {
+                combined += "\n" + extra.getText();
+            }
+            obj.put("text", combined);
+            obj.put("width", image.getWidth());
+            obj.put("height", image.getHeight());
+            JSONArray lines = new JSONArray();
+            appendLines(lines, fullResult, null);
+            if (extra != null) appendLines(lines, extra, offset);
+            obj.put("lines", lines);
+            obj.put("preview", makePreview(uri));
+            obj.put("activeType", detectActiveTab(uri));
+            obj.put("spxDetectorVersion", OCR_VERSION);
+            obj.put("totalRegionOCR", extra == null ? "not-used" : "performed");
+            done++;
+            runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
+        } catch (Exception e) {
+            sendError("Lỗi chuyển kết quả: " + e.getMessage());
+        }
+        processNext();
+    }
+
+    private void appendLines(JSONArray lines, Text result, int[] offset) throws Exception {
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                Rect r = line.getBoundingBox();
+                if (r == null) continue;
+                JSONObject item = new JSONObject();
+                item.put("text", line.getText());
+                if (offset == null) {
+                    item.put("x", r.left); item.put("y", r.top);
+                    item.put("w", r.width()); item.put("h", r.height());
+                } else {
+                    item.put("x", offset[0] + r.left / offset[2]);
+                    item.put("y", offset[1] + r.top / offset[2]);
+                    item.put("w", r.width() / offset[2]);
+                    item.put("h", r.height() / offset[2]);
+                }
+                lines.put(item);
+            }
+        }
     }
 
     // Detect the selected SPX tab from the ORIGINAL screenshot (not the JPEG preview).
