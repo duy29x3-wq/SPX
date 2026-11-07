@@ -517,8 +517,11 @@ window.spxNativeResult=function(result,done,total){
  const task=(async()=>{
   try{
    const parsed=spxNativeParse(result);
+   parsed.detectorVersion=result.spxDetectorVersion||'JAVA_CHUA_CAP_NHAT';
+   parsed.nativeActiveType=result.activeType||'';
    // Fallback for older APK builds: inspect the preview's orange underline.
    if(!parsed.type && result.preview)parsed.type=await selectedTab(result.preview);
+   parsed.ocrDebug=(parsed.ocrDebug||'')+'\nBộ nhận diện Java: '+parsed.detectorVersion+'; tab='+String(parsed.nativeActiveType||'không xác định')+'; kết quả='+String(parsed.type||'thiếu nhiệm vụ');
    spxNativeResults.push({order:done,item:parsed});
   }catch(e){spxNativeErrors.push('Lỗi phân tích ảnh '+done+': '+e.message)}
  })();
