@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
         processNext();
     }
 
-    private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V4";
+    private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V5";
     private void processNext() {
         if (queue.isEmpty()) { runJS("window.spxNativeDone&&window.spxNativeDone()"); return; }
         Uri uri = queue.remove(0);
@@ -125,8 +125,7 @@ public class MainActivity extends Activity {
     private boolean hasTotalHeader(String text) {
         if (text == null) return false;
         for (String line : text.split("\\r?\\n")) {
-            if (line.toLowerCase(java.util.Locale.ROOT).contains("tổng")
-                    && line.matches("(?s).*\\d+.*")) return true;
+            if (line.toLowerCase(java.util.Locale.ROOT).matches("(?s).*tổng\\s*[:：-]?\\s*\\d+\\s*(?:đơn|don).*")) return true;
         }
         return false;
     }
@@ -147,9 +146,9 @@ public class MainActivity extends Activity {
             int w = source.getWidth(), h = source.getHeight();
             // Typical SPX screenshots put 'Tổng N đơn hàng' at ~26% height.
             // First crop is text-only; second allows different screen layouts.
-            float xRight = pass == 0 ? 0.68f : 0.93f;
-            float yTop = pass == 0 ? 0.245f : 0.225f;
-            float yBottom = pass == 0 ? 0.295f : 0.325f;
+            float xRight = pass == 0 ? 0.95f : 0.97f;
+            float yTop = pass == 0 ? 0.215f : 0.165f;
+            float yBottom = pass == 0 ? 0.345f : 0.425f;
             int left = Math.max(0, Math.round(w * 0.035f));
             int top = Math.max(0, Math.round(h * yTop));
             int right = Math.min(w, Math.round(w * xRight));
@@ -240,6 +239,7 @@ public class MainActivity extends Activity {
             obj.put("spxDetectorVersion", OCR_VERSION);
             obj.put("totalRegionOCR", roiStatus);
             obj.put("totalRegionText", extra == null ? "" : extra.getText());
+            obj.put("totalRegionAvailable", extra != null && extra.getText() != null && !extra.getText().trim().isEmpty());
             done++;
             runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
         } catch (Exception e) {
