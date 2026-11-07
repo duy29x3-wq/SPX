@@ -128,8 +128,8 @@ public class MainActivity extends Activity {
                     String preview = makePreview(uri);
                      obj.put("preview", preview);
                      // Detect active tab from its orange underline in the original screenshot.
-                     obj.put("activeType", detectActiveTab(preview));
-                     obj.put("spxDetectorVersion", "SPX-TAB-20261108");
+                     obj.put("activeType", detectActiveTab(uri));
+                     obj.put("spxDetectorVersion", "SPX-TAB-ORIGINAL-20261108-V2");
                     done++;
                     runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
                 } catch (Exception e) { sendError("Lỗi chuyển kết quả: " + e.getMessage()); }
@@ -142,37 +142,54 @@ public class MainActivity extends Activity {
         } catch (Exception e) { sendError("Ảnh không hợp lệ: " + e.getMessage()); done++; processNext(); }
     }
 
-    // Read the orange underline below the three SPX tabs. Return null if ambiguous.
-    private String detectActiveTab(String preview) {
+    // Detect the selected SPX tab from the ORIGINAL screenshot (not the JPEG preview).
+    // Return null on uncertain images; never guess a task from OCR text alone.
+    private String detectActiveTab(Uri uri) {
+        Bitmap bitmap = null;
         try {
-            if (preview == null || preview.isEmpty()) return null;
-            int comma = preview.indexOf(',');
-            if (comma < 0) return null;
-            byte[] bytes = Base64.decode(preview.substring(comma + 1), Base64.DEFAULT);
-            Bitmap original = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            if (original == null) return null;
-            int w = 420;
-            int h = Math.max(1, Math.round(original.getHeight() * (w / (float)original.getWidth())));
-            Bitmap b = Bitmap.createScaledBitmap(original, w, h, true);
-            if (b != original) original.recycle();
-            int[] pixels = new int[w * h];
-            b.getPixels(pixels, 0, w, 0, 0, w, h);
-            b.recycle();
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (InputStream stream = getContentResolver().openInputStream(uri)) {
+                BitmapFactory.decodeStream(stream, null, bounds);
+            }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            int sample = 1;
+            while (Math.max(bounds.outWidth / sample, bounds.outHeight / sample) > 1600) sample *= 2;
+            opts.inSampleSize = sample;
+            try (InputStream stream = getContentResolver().openInputStream(uri)) {
+                bitmap = BitmapFactory.decodeStream(stream, null, opts);
+            }
+            if (bitmap == null) return null;
+            int w = bitmap.getWidth(), h = bitmap.getHeight();
+            if (w < 180 || h < 300) return null;
+
+            // SPX screenshots: underline is around 17.7% of image height.
+            // Search a narrow vertical band to exclude orange logos and other controls.
+            int y0 = Math.max(0, Math.round(h * 0.145f));
+            int y1 = Math.min(h - 1, Math.round(h * 0.215f));
+            int x0 = Math.round(w * 0.07f), x1 = Math.round(w * 0.73f);
             double[] scores = new double[3];
-            int minY = Math.round(h * .11f), maxY = Math.min(h - 1, Math.round(h * .31f));
-            for (int y = minY; y <= maxY; y++) {
+            int[] row = new int[w];
+            for (int y = y0; y <= y1; y++) {
+                bitmap.getPixels(row, 0, w, 0, y, w, 1);
                 int start = -1;
-                for (int x = 12; x < w - 11; x++) {
-                    int c = pixels[y * w + x];
-                    int r = (c >> 16) & 255, g = (c >> 8) & 255, bl = c & 255;
-                    boolean orange = r > 165 && r > g * 1.35 && g > bl * 1.15 && g < 175 && bl < 145;
+                for (int x = x0; x <= x1 + 1; x++) {
+                    boolean orange = false;
+                    if (x <= x1) {
+                        int c = row[x];
+                        int r = (c >>> 16) & 255, g = (c >>> 8) & 255, bl = c & 255;
+                        // Orange-red SPX underline; permit JPEG variations and antialiasing.
+                        orange = r >= 165 && r > g * 1.30 && g > bl * 1.10
+                                && g >= 45 && g <= 185 && bl <= 155;
+                    }
                     if (orange && start < 0) start = x;
-                    if ((!orange || x == w - 12) && start >= 0) {
+                    if (!orange && start >= 0) {
                         int len = x - start;
-                        if (len >= 13 && len <= 85) {
-                            float mid = start + len / 2f;
-                            int col = mid < w * .31f ? 0 : mid < w * .53f ? 1 : mid < w * .78f ? 2 : -1;
-                            if (col >= 0) scores[col] += len;
+                        if (len >= w * 0.035f && len <= w * 0.11f) {
+                            float cx = (start + x) / (2f * w);
+                            int task = cx < .29f ? 0 : cx < .48f ? 1 : cx < .70f ? 2 : -1;
+                            if (task >= 0) scores[task] += len;
                         }
                         start = -1;
                     }
@@ -180,10 +197,16 @@ public class MainActivity extends Activity {
             }
             int best = 0;
             for (int i = 1; i < 3; i++) if (scores[i] > scores[best]) best = i;
-            double other = Math.max(scores[(best + 1) % 3], scores[(best + 2) % 3]);
-            if (scores[best] < 26 || (other > 0 && scores[best] <= other * 1.65)) return null;
+            double runnerUp = Math.max(scores[(best + 1) % 3], scores[(best + 2) % 3]);
+            Log.d("SPX", "Orange tab scores: " + scores[0] + "," + scores[1] + "," + scores[2]);
+            if (scores[best] < w * 0.05 || (runnerUp > 0 && scores[best] < runnerUp * 1.8)) return null;
             return new String[]{"giao", "lay", "hoan"}[best];
-        } catch (Exception e) { Log.w("SPX", "Cannot identify selected tab", e); return null; }
+        } catch (Exception e) {
+            Log.w("SPX", "Cannot identify selected tab", e);
+            return null;
+        } finally {
+            if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+        }
     }
 
     private String makePreview(Uri uri) {
