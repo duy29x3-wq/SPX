@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
         processNext();
     }
 
-    private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V3";
+    private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V4";
     private void processNext() {
         if (queue.isEmpty()) { runJS("window.spxNativeDone&&window.spxNativeDone()"); return; }
         Uri uri = queue.remove(0);
@@ -131,39 +131,58 @@ public class MainActivity extends Activity {
         return false;
     }
 
+    // V4: crop the actual total line, excluding the large dropdown and weight cards.
+    // Retry with a wider crop only if the focused OCR fails to find the total.
     private void scanTotalRegion(Uri uri, InputImage image, Text fullResult) {
+        scanTotalRegionPass(uri, image, fullResult, 0);
+    }
+
+    private void scanTotalRegionPass(Uri uri, InputImage image, Text fullResult, int pass) {
         Bitmap source = null;
         try {
-            // Use a decoded image in its upright orientation. The crop targets the
-            // total label below the three tabs, not the orange underline itself.
             source = loadUprightBitmap(uri);
-            if (source == null) { deliverResult(uri, image, fullResult, null, null); return; }
-            int w = source.getWidth(), h = source.getHeight();
-            int left = Math.max(0, Math.round(w * 0.035f));
-            int top = Math.max(0, Math.round(h * 0.205f));
-            int right = Math.min(w, Math.round(w * 0.97f));
-            int bottom = Math.min(h, Math.round(h * 0.315f));
-            if (right <= left || bottom <= top) {
-                source.recycle(); deliverResult(uri, image, fullResult, null, null); return;
+            if (source == null) {
+                deliverResult(uri, image, fullResult, null, null, "decode-failed"); return;
             }
-            Bitmap crop = Bitmap.createBitmap(source, left, top, right - left, bottom - top);
-            source.recycle();
-            int cw = crop.getWidth(), ch = crop.getHeight();
-            Bitmap enlarged = Bitmap.createScaledBitmap(crop, cw * 2, ch * 2, true);
+            int w = source.getWidth(), h = source.getHeight();
+            // Typical SPX screenshots put 'Tổng N đơn hàng' at ~26% height.
+            // First crop is text-only; second allows different screen layouts.
+            float xRight = pass == 0 ? 0.68f : 0.93f;
+            float yTop = pass == 0 ? 0.245f : 0.225f;
+            float yBottom = pass == 0 ? 0.295f : 0.325f;
+            int left = Math.max(0, Math.round(w * 0.035f));
+            int top = Math.max(0, Math.round(h * yTop));
+            int right = Math.min(w, Math.round(w * xRight));
+            int bottom = Math.min(h, Math.round(h * yBottom));
+            if (right <= left || bottom <= top) {
+                source.recycle(); deliverResult(uri, image, fullResult, null, null, "invalid-crop"); return;
+            }
+            Bitmap crop = Bitmap.createBitmap(source, left, top, right-left, bottom-top);
+            source.recycle(); source = null;
+            int scale = 3;
+            Bitmap enlarged = Bitmap.createScaledBitmap(crop, crop.getWidth()*scale, crop.getHeight()*scale, true);
             crop.recycle();
             recognizer.process(InputImage.fromBitmap(enlarged, 0))
-                    .addOnSuccessListener(extra -> {
-                        try { deliverResult(uri, image, fullResult, extra, new int[]{left, top, 2}); }
-                        finally { enlarged.recycle(); }
-                    })
-                    .addOnFailureListener(e -> {
-                        enlarged.recycle();
-                        deliverResult(uri, image, fullResult, null, null);
-                    });
+                .addOnSuccessListener(extra -> {
+                    try {
+                        if (pass == 0 && !hasTotalHeader(extra.getText())) {
+                            scanTotalRegionPass(uri, image, fullResult, 1);
+                        } else {
+                            deliverResult(uri, image, fullResult, extra,
+                                    new int[]{left, top, scale}, "pass-"+(pass+1));
+                        }
+                    } finally { enlarged.recycle(); }
+                })
+                .addOnFailureListener(e -> {
+                    enlarged.recycle();
+                    if (pass == 0) scanTotalRegionPass(uri, image, fullResult, 1);
+                    else deliverResult(uri, image, fullResult, null, null, "ocr-failed:"+e.getClass().getSimpleName());
+                });
         } catch (Exception e) {
             if (source != null && !source.isRecycled()) source.recycle();
-            Log.w("SPX", "Total-region OCR failed", e);
-            deliverResult(uri, image, fullResult, null, null);
+            Log.w("SPX", "V4 total crop failed", e);
+            if (pass == 0) scanTotalRegionPass(uri, image, fullResult, 1);
+            else deliverResult(uri, image, fullResult, null, null, "crop-failed:"+e.getClass().getSimpleName());
         }
     }
 
@@ -197,6 +216,10 @@ public class MainActivity extends Activity {
     }
 
     private void deliverResult(Uri uri, InputImage image, Text fullResult, Text extra, int[] offset) {
+        deliverResult(uri, image, fullResult, extra, offset, "full-image");
+    }
+
+    private void deliverResult(Uri uri, InputImage image, Text fullResult, Text extra, int[] offset, String roiStatus) {
         try {
             JSONObject obj = new JSONObject();
             String combined = fullResult.getText();
@@ -215,7 +238,8 @@ public class MainActivity extends Activity {
             obj.put("preview", makePreview(uri));
             obj.put("activeType", detectActiveTab(uri));
             obj.put("spxDetectorVersion", OCR_VERSION);
-            obj.put("totalRegionOCR", extra == null ? "not-used" : "performed");
+            obj.put("totalRegionOCR", roiStatus);
+            obj.put("totalRegionText", extra == null ? "" : extra.getText());
             done++;
             runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
         } catch (Exception e) {
