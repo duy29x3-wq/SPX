@@ -350,14 +350,21 @@ async function getSPXOCRWorker(){
    await loadTesseract();
    return Tesseract.createWorker('vie+eng',1,{logger:m=>{
     const p=$('#ocrProgress'),el=$('#ocrStatus');
-    if(p && typeof m.progress==='number')p.value=Math.round(m.progress*100);
-    if(el && m.status)el.textContent=m.status+(typeof m.progress==='number'?' '+Math.round(m.progress*100)+'%':'');
+    // Tiến trình theo số ảnh hoàn thành, không dùng % nội bộ của từng lượt OCR.
+    if(el)el.textContent='Đang quét';
    }});
   })().catch(e=>{spxOCRWorkerPromise=null;throw e});
  }
  return spxOCRWorkerPromise;
 }
-function spxSetStatus(message){const el=$('#ocrStatus');if(el)el.textContent=message}
+function spxScanProgress(percent){
+ const value=Math.max(0,Math.min(100,Math.round(Number(percent)||0)));
+ const bar=document.getElementById('ocrProgress');if(bar)bar.value=value;
+ const pct=document.getElementById('ocrPercent');if(pct)pct.textContent=value+'%';
+}
+function spxScanDialog(){return '<div style="text-align:center;padding:12px 0 18px"><h2>Đang quét...</h2><div id="ocrImageCount" style="font-size:16px;font-weight:700;margin:8px 0">0/0 ảnh</div><div id="ocrPercent" style="font-size:26px;font-weight:800;color:#fa4816;margin:15px 0">0%</div><progress id="ocrProgress" max="100" value="0" style="width:100%;height:14px;accent-color:#fa4816"></progress></div>'}
+function spxScanImageCount(done,total){const el=document.getElementById('ocrImageCount');if(el)el.textContent=Math.max(0,done)+'/'+Math.max(0,total)+' ảnh'}
+function spxSetStatus(message){const el=$('#ocrStatus');if(el)el.textContent='Đang quét'}
 function spxSum(counts){return counts.reduce((a,b)=>a+(Number(b)||0),0)}
 function spxValidCounts(parsed){
  return parsed.expected!==null && Number.isInteger(parsed.expected) && parsed.expected>=0 &&
@@ -380,7 +387,8 @@ async function processPhotos(files){
  if(!files.length || spxOCRBusy)return;
  spxOCRBusy=true;
  const spxScreenAwake=await spxKeepScreenOn();
- showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">Fast OCR: đọc 8 mốc cân, chỉ quét bổ sung khi cần và luôn đối chiếu tổng đơn trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị OCR…</p>${spxScreenAwake?'<p class="muted">☀ Màn hình sẽ được giữ sáng trong lúc quét.</p>':'<p class="muted">⚠ Trình duyệt hiện tại không hỗ trợ giữ sáng màn hình. Hãy tăng thời gian chờ màn hình trong Cài đặt nếu cần.</p>'}`);
+ showModal(spxScanDialog());
+ spxScanImageCount(0,files.length);spxScanProgress(0);
  try{
   const worker=await getSPXOCRWorker();
   const results=[];
@@ -421,6 +429,7 @@ async function processPhotos(files){
    parsed.found=parsed.counts.filter(v=>v>0).length;
    parsed.type=spxScanType||(await selectedTab(data))||null;
    results.push({...parsed,preview:data});
+   spxScanImageCount(i+1,files.length);spxScanProgress((i+1)/files.length*100);
   }
   pending=results;
   if(results.length)showReview(results[0],0);else closeModal();
@@ -432,7 +441,8 @@ async function processPhotos(files){
 let spxNativeResults=[],spxNativeErrors=[];
 window.spxNativeStart=function(n){
  spxNativeResults=[];spxNativeErrors=[];spxNativeTasks=[];
- showModal(`<h2>⚡ ML Kit đang quét ảnh</h2><p class="muted">Đọc ${n} ảnh trực tiếp trên Android, không tải Tesseract.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang nhận diện…</p>`);
+ showModal(spxScanDialog());
+ spxScanImageCount(0,n);spxScanProgress(0);
 };
 window.spxNativeCancelled=function(){};
 window.spxNativeError=function(msg){spxNativeErrors.push(msg);const e=$('#ocrStatus');if(e)e.textContent=msg};
@@ -529,8 +539,8 @@ window.spxNativeResult=function(result,done,total){
   }catch(e){spxNativeErrors.push('Lỗi phân tích ảnh '+done+': '+e.message)}
  })();
  spxNativeTasks.push(task);
- const p=$('#ocrProgress');if(p)p.value=Math.round(done/total*100);
- const status=$('#ocrStatus');if(status)status.textContent='Đã đọc '+done+'/'+total+' ảnh';
+ spxScanImageCount(done,total);spxScanProgress(total>0?done/total*100:0);
+ const status=$('#ocrStatus');if(status)status.textContent='Đang quét';
 };
 window.spxNativeDone=function(){
  pending=spxNativeResults;
@@ -593,10 +603,7 @@ parseOCR=function(text){const r=spxBaseParseOCR(text);r.date=spxDateFromText(tex
 const spxOriginalChoosePhotos=choosePhotos;
 choosePhotos=function(){
  spxMixedScan=false;
- const v=prompt('Năm của các ảnh cần quét (ảnh chỉ ghi ngày/tháng):',String(new Date().getFullYear()));
- if(v===null)return;
- if(!/^20\d{2}$/.test(v)){alert('Nhập năm hợp lệ gồm 4 chữ số.');return}
- spxScanYear=Number(v);spxOriginalChoosePhotos();
+ spxScanYear=new Date().getFullYear();spxOriginalChoosePhotos();
 };
 function spxTypeLabel(t){return TYPES.find(x=>x.id===t)?.label||'Chưa rõ'}
 function spxBatchStatus(item){
@@ -628,7 +635,7 @@ function spxBatchList(){
 }
 function spxQuickSetType(i,type){if(!pending[i]||!['giao','lay','hoan'].includes(type))return;pending[i].type=type;spxBatchList()}
 function spxBatchRemove(i){pending.splice(i,1);spxBatchList()}
-function spxBatchEdit(i){const r=pending[i];const sum=r.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh ${i+1}/${pending.length}</h2><button class="link" onclick="spxBatchList()">← Danh sách</button></div>${r.preview?`<img class="preview" src="${r.preview}">`:''}<div class="field"><label>Ngày (năm đã chọn: ${spxScanYear})</label><input id="recordDate" type="date" value="${esc(r.date||'')}"></div><div class="field"><label>Nhiệm vụ</label><select id="recordType"><option value="" ${!r.type?'selected':''}>-- Chọn nhiệm vụ --</option>${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${t.id===r.type?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>8 mốc cân</h3>${weightsEditor(r.counts)}<div class="field"><label>Tổng SPX trên ảnh</label><input id="expected" type="number" min="0" value="${r.expected??''}"></div><div id="sumNotice" class="notice">Tổng 8 mốc: ${sum} đơn</div>${r.expected==null?`<button class="smallbtn" style="margin-bottom:12px" onclick="spxConfirmTotalFromImage()">✓ Tôi đã đối chiếu ảnh: tổng là ${sum} đơn</button>`:""}<button class="btn full" onclick="spxBatchApply(${i})">✓ Xác nhận ảnh này</button>${r.ocrDebug?`<details><summary>Chi tiết OCR</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(r.ocrDebug)}</pre></details>`:''}`)}
+function spxBatchEdit(i){const r=pending[i];const sum=r.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh ${i+1}/${pending.length}</h2><button class="link" onclick="spxBatchList()">← Danh sách</button></div>${r.preview?`<img class="preview" src="${r.preview}">`:''}<div class="field"><label>Ngày trên ảnh</label><input id="recordDate" type="date" value="${esc(r.date||'')}"></div><div class="field"><label>Nhiệm vụ</label><select id="recordType"><option value="" ${!r.type?'selected':''}>-- Chọn nhiệm vụ --</option>${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${t.id===r.type?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>8 mốc cân</h3>${weightsEditor(r.counts)}<div class="field"><label>Tổng SPX trên ảnh</label><input id="expected" type="number" min="0" value="${r.expected??''}"></div><div id="sumNotice" class="notice">Tổng 8 mốc: ${sum} đơn</div>${r.expected==null?`<button class="smallbtn" style="margin-bottom:12px" onclick="spxConfirmTotalFromImage()">✓ Tôi đã đối chiếu ảnh: tổng là ${sum} đơn</button>`:""}<button class="btn full" onclick="spxBatchApply(${i})">✓ Xác nhận ảnh này</button>${r.ocrDebug?`<details><summary>Chi tiết OCR</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(r.ocrDebug)}</pre></details>`:''}`)}
 function spxBatchApply(i){const date=$('#recordDate').value,type=$('#recordType').value,vals=WEIGHTS.map((_,j)=>$('#w'+j).value.trim()),expected=$('#expected').value.trim();if(!date||!['giao','lay','hoan'].includes(type)||vals.some(v=>!/^(0|[1-9]\d*)$/.test(v))||!/^(0|[1-9]\d*)$/.test(expected)){alert('Kiểm tra ngày, 8 số nguyên không âm và tổng SPX.');return}const counts=vals.map(Number),sum=counts.reduce((a,b)=>a+b,0);if(sum!==Number(expected)){alert('Tổng 8 mốc khác tổng SPX. Chưa thể xác nhận.');return}pending[i]={...pending[i],date,type,counts,expected:Number(expected),found:Math.max(1,pending[i].found||0)};spxBatchList()}
 function spxBatchCommit(){
  const duplicates=spxBatchDuplicates(),valid=[],remain=[];
@@ -641,7 +648,7 @@ function spxBatchCommit(){
  const updated=records.concat(newRecords);
  try{localStorage.setItem('spx_records_v1',JSON.stringify(updated))}catch(e){alert('Không lưu được: '+e.message);return}
  records=updated;month=valid[valid.length-1].date.slice(0,7);pending=remain;
- if(remain.length){spxBatchList();alert('Đã lưu '+valid.length+' ảnh hợp lệ. Còn '+remain.length+' ảnh cần kiểm tra.')}else{closeModal();switchPage('nhatky');alert('Đã lưu '+valid.length+' ảnh thành công.')}
+ if(remain.length){spxBatchList()}else{closeModal();switchPage('nhatky')}
 }
 // Override native batch completion and browser OCR completion by intercepting showReview.
 const spxOldShowReview=showReview;
@@ -659,10 +666,7 @@ renderSummary=function(){return spxSummaryBeforeGoal()+spxGoalPanel()};
 let spxMixedScan=false;
 function spxScanAllTypes(){
  spxMixedScan=true;
- const v=prompt('Năm của các ảnh cần quét (ảnh chỉ ghi ngày/tháng):',String(new Date().getFullYear()));
- if(v===null)return;
- if(!/^20\d{2}$/.test(v)){alert('Nhập năm hợp lệ gồm 4 chữ số.');return}
- spxScanYear=Number(v);spxScanType=null;
+ spxScanYear=new Date().getFullYear();spxScanType=null;
  if(window.SPXNative&&typeof window.SPXNative.pickImages==='function'){window.SPXNative.pickImages();return}
  $('#photoInput').value='';$('#photoInput').click();
 }
