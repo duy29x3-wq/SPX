@@ -210,7 +210,7 @@ const $=s=>document.querySelector(s), fmt=n=>Math.round(n).toLocaleString('vi-VN
 const today=()=>{let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let records=[];try{records=JSON.parse(localStorage.getItem('spx_records_v1')||'[]')}catch(e){};if(!Array.isArray(records))records=[];
 let page='tong',month=today().slice(0,7),pending=[],currentPreview='';
-// Nghiệp vụ được người dùng chọn trước khi quét; OCR không thể suy ra tab từ chữ của cả 3 tab.
+// Nhiệm vụ được người dùng chọn trước khi quét; OCR không thể suy ra tab từ chữ của cả 3 tab.
 let spxScanType='giao';
 function save(){try{localStorage.setItem('spx_records_v1',JSON.stringify(records))}catch(e){alert('Trình xem tệp trên iPhone không cho lưu dữ liệu lâu dài. Hãy mở app bằng Safari qua địa chỉ HTTPS để lưu nhật ký an toàn.')}}
 function monthly(type){return records.filter(r=>r.date.startsWith(month)&&(type==='tong'||r.type===type))}
@@ -231,18 +231,18 @@ function renderType(type){const t=TYPES.find(t=>t.id===type),a=sums(type),count=
 <div class="card"><div class="between"><h2>Nhật ký sản lượng từng ngày</h2><b class="pill">${recs.length} ngày</b></div>${recs.length?recs.map(r=>renderRecord(r)).join(''):'<p class="muted">Chưa có dữ liệu. Nhấn “Quét từ ảnh” để bắt đầu.</p>'}</div>`}
 function detailTable(type,a){return `<div class="tablewrap"><table><thead><tr><th>Cân nặng</th><th>Số đơn</th><th>Mốc tính</th><th>Thành tiền</th></tr></thead><tbody>${a.map((n,i)=>`<tr class="${n?'':'dim'}"><td>${WEIGHTS[i]}</td><td>${fmtInt(n)}</td><td>${range(bracket(type,n))}</td><td>${fmt(reward(type,n,i))}</td></tr>`).join('')}</tbody></table></div>`}
 function renderRecord(r){const count=r.counts.reduce((a,b)=>a+num(b),0);return `<div class="entry"><div class="between"><b>📅 ${esc(r.date.split('-').reverse().join('/'))}</b><span class="pill">${count} đơn</span></div><div class="kicker" style="margin:8px 0">${r.counts.map((v,i)=>v?`${WEIGHTS[i]}: ${v}`:'').filter(Boolean).join(' • ')}</div><div class="rowactions"><button class="smallbtn" onclick="editRecord('${r.id}')">✎ Sửa</button><button class="smallbtn danger" onclick="deleteRecord('${r.id}')">🗑 Xóa</button></div></div>`}
-function renderSummary(){let count=['giao','lay','hoan'].reduce((a,t)=>a+sums(t).reduce((x,y)=>x+y,0),0);return `<div class="between" style="margin-bottom:15px"><h2 style="margin:0">Tổng kết sản lượng</h2>${monthControl()}</div><div class="card"><div class="muted">Tổng tiền thưởng trong tháng</div><div class="big">${fmt(allTotal())}</div><div class="statgrid" style="margin-top:15px">${['giao','lay','hoan'].map(t=>`<div class="stat"><strong>${fmtInt(sums(t).reduce((a,b)=>a+b,0))}</strong><small>${TYPES.find(x=>x.id===t).label}</small><div class="money" style="font-size:12px;margin-top:7px">${fmt(total(t))}</div></div>`).join('')}</div></div><div class="card"><h2>💡 Gợi ý số đơn cần đạt mốc tiếp theo</h2>${['giao','lay','hoan'].map(t=>renderHints(t)).join('')}</div><div class="card"><h2>Nhật ký tất cả nghiệp vụ</h2>${monthly('tong').sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<div class="between entry"><div><b>${esc(r.date.split('-').reverse().join('/'))}</b><div class="muted">${TYPES.find(t=>t.id===r.type)?.label||r.type}</div></div><div><b>${r.counts.reduce((a,b)=>a+b,0)} đơn</b><div><button class="link" onclick="switchPage('${r.type}')">Xem</button></div></div></div>`).join('')||'<p class="muted">Chưa có dữ liệu.</p>'}</div>`}
+function renderSummary(){let count=['giao','lay','hoan'].reduce((a,t)=>a+sums(t).reduce((x,y)=>x+y,0),0);return `<div class="between" style="margin-bottom:15px"><h2 style="margin:0">Tổng kết sản lượng</h2>${monthControl()}</div><div class="card"><div class="muted">Tổng tiền thưởng trong tháng</div><div class="big">${fmt(allTotal())}</div><div class="statgrid" style="margin-top:15px">${['giao','lay','hoan'].map(t=>`<div class="stat"><strong>${fmtInt(sums(t).reduce((a,b)=>a+b,0))}</strong><small>${TYPES.find(x=>x.id===t).label}</small><div class="money" style="font-size:12px;margin-top:7px">${fmt(total(t))}</div></div>`).join('')}</div></div><div class="card"><h2>💡 Gợi ý số đơn cần đạt mốc tiếp theo</h2>${['giao','lay','hoan'].map(t=>renderHints(t)).join('')}</div><div class="card"><h2>Nhật ký tất cả nhiệm vụ</h2>${monthly('tong').sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`<div class="between entry"><div><b>${esc(r.date.split('-').reverse().join('/'))}</b><div class="muted">${TYPES.find(t=>t.id===r.type)?.label||r.type}</div></div><div><b>${r.counts.reduce((a,b)=>a+b,0)} đơn</b><div><button class="link" onclick="switchPage('${r.type}')">Xem</button></div></div></div>`).join('')||'<p class="muted">Chưa có dữ liệu.</p>'}</div>`}
 function renderHints(t){let a=sums(t),count=a.reduce((x,y)=>x+y,0),r=bracket(t,count);let hints=a.map((n,i)=>{let current=bracket(t,n);let next=RATE_TABLE[t].find(row=>row[0]>=(current?current[1]:1));if(!next)return '';let need=Math.max(0,next[0]-n),gain=next[i+2]*1000-reward(t,n,i);if(gain<=0)return '';return {i,n,need,gain,range:range(current),next:range(next)}}).filter(Boolean).sort((a,b)=>a.i-b.i);return `<div class="between"><b>${TYPES.find(x=>x.id===t).icon} ${TYPES.find(x=>x.id===t).label}</b><span class="tag">${fmt(total(t))} • ${count} đơn</span></div><div class="progress"><div style="width:${r?Math.max(2,Math.min(100,100*(count-r[0])/Math.max(1,r[1]-r[0]))):0}%"></div></div>${hints.length?hints.map(h=>`<div class="hint"><div><b>${WEIGHTS[h.i]}</b> (${h.n} đơn)<br><span class="kicker">Cần thêm ${h.need} đơn để đạt mốc ${h.next}</span></div><em>+${fmt(h.gain)}</em></div>`).join(''):'<p class="muted">Chưa có mốc tiếp theo.</p>'}<div class="divider"></div>`}
 function showModal(html){$('#modalRoot').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`}function closeModal(){$('#modalRoot').innerHTML=''}
 function choosePhotos(){spxScanType=page==='tong'?null:page;if(window.SPXNative&&typeof window.SPXNative.pickImages==='function'){window.SPXNative.pickImages();return;}$('#photoInput').value='';$('#photoInput').click()}
 function weightsEditor(values){return WEIGHTS.map((w,i)=>`<div class="weightrow"><label for="w${i}">${w}</label><input id="w${i}" type="number" min="0" step="1" value="${num(values[i])}"></div>`).join('')}
-function showReview(item,index){pending[index]=item;const total=item.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh SPX (${index+1}/${pending.length})</h2><button class="link" onclick="closeModal()">✕</button></div><p class="muted">OCR có thể nhận nhầm. Nghiệp vụ được lấy từ mục đang mở khi bấm Quét; hãy xác nhận đúng tab trong ảnh. Đối chiếu từng dòng với ảnh gốc trước khi lưu. Nếu tổng không khớp, app sẽ chặn lưu.</p>${item.preview?`<img class="preview" src="${item.preview}">`:''}<div class="field"><label>Ngày trên ảnh</label><input id="recordDate" type="date" value="${esc(item.date)}"></div><div class="field"><label>Nghiệp vụ (kiểm tra đúng tab được chọn trong ảnh)</label><select id="recordType">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${item.type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>Số đơn theo mức cân</h3>${weightsEditor(item.counts)}${item.ocrDebug?`<details style="margin:12px 0"><summary>Chi tiết OCR V8 (${item.ocrCards||0} thẻ phát hiện)</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(item.ocrDebug)}</pre></details>`:''}<div id="sumNotice" class="notice ${item.expected===total?'success':''}">Tổng đọc được: <b>${total}</b> đơn. ${item.expected===null?'Không đọc được dòng tổng trên ảnh.':`Tổng SPX trên ảnh: <b>${item.expected}</b> đơn ${item.expected===total?'✓ Khớp':'⚠ Chưa khớp'}`}</div><div class="field"><label>Tổng đơn SPX hiển thị trên ảnh (để kiểm tra)</label><input id="expected" type="number" min="0" value="${item.expected??''}" placeholder="Không đọc được"></div><button class="btn full" onclick="saveReview(${index})">✓ Xác nhận và lưu</button><p class="foot">Nếu cùng ngày và nghiệp vụ đã tồn tại, app sẽ hỏi trước khi thay thế.</p>`)}
+function showReview(item,index){pending[index]=item;const total=item.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh SPX (${index+1}/${pending.length})</h2><button class="link" onclick="closeModal()">✕</button></div><p class="muted">OCR có thể nhận nhầm. Nhiệm vụ được lấy từ mục đang mở khi bấm Quét; hãy xác nhận đúng tab trong ảnh. Đối chiếu từng dòng với ảnh gốc trước khi lưu. Nếu tổng không khớp, app sẽ chặn lưu.</p>${item.preview?`<img class="preview" src="${item.preview}">`:''}<div class="field"><label>Ngày trên ảnh</label><input id="recordDate" type="date" value="${esc(item.date)}"></div><div class="field"><label>Nhiệm vụ (kiểm tra đúng tab được chọn trong ảnh)</label><select id="recordType">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${item.type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>Số đơn theo mức cân</h3>${weightsEditor(item.counts)}${item.ocrDebug?`<details style="margin:12px 0"><summary>Chi tiết OCR V8 (${item.ocrCards||0} thẻ phát hiện)</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(item.ocrDebug)}</pre></details>`:''}<div id="sumNotice" class="notice ${item.expected===total?'success':''}">Tổng đọc được: <b>${total}</b> đơn. ${item.expected===null?'Không đọc được dòng tổng trên ảnh.':`Tổng SPX trên ảnh: <b>${item.expected}</b> đơn ${item.expected===total?'✓ Khớp':'⚠ Chưa khớp'}`}</div><div class="field"><label>Tổng đơn SPX hiển thị trên ảnh (để kiểm tra)</label><input id="expected" type="number" min="0" value="${item.expected??''}" placeholder="Không đọc được"></div><button class="btn full" onclick="saveReview(${index})">✓ Xác nhận và lưu</button><p class="foot">Nếu cùng ngày và nhiệm vụ đã tồn tại, app sẽ hỏi trước khi thay thế.</p>`)}
 document.addEventListener('input',function(e){if(!e.target.closest('.modal'))return;const n=document.getElementById('sumNotice');if(!n)return;const total=Array.from({length:8},(_,i)=>Number(document.getElementById('w'+i)?.value||0)).reduce((a,b)=>a+b,0);const expected=document.getElementById('expected')?.value; n.textContent='Tổng theo cân: '+total+' đơn. Tổng SPX trên ảnh: '+(expected||'chưa có')+' đơn. '+(expected!==''&&total===Number(expected)?'✓ Khớp':'⚠ Chưa khớp');n.classList.toggle('success',expected!==''&&total===Number(expected));});
 function saveReview(index){const date=$('#recordDate').value,type=$('#recordType').value,counts=WEIGHTS.map((_,i)=>Math.max(0,Math.floor(num($('#w'+i).value)))),expected=$('#expected').value===''?null:num($('#expected').value),sum=counts.reduce((a,b)=>a+b,0);if(!date){alert('Chưa có ngày.');return}if(expected===null){alert('Không đọc được tổng SPX trên ảnh. Hãy nhập tổng từ ảnh để đối chiếu trước khi lưu.');return;}if(expected!==sum){alert(`KHÔNG THỂ LƯU: Tổng theo cân (${sum}) khác tổng trên ảnh (${expected}). Hãy sửa số đơn hoặc quét lại ảnh.`);return;}let old=records.find(r=>r.date===date&&r.type===type);if(old&&!confirm(`Đã có ${TYPES.find(t=>t.id===type).label} ngày ${date}. Thay thế bản ghi cũ?`))return;records=records.filter(r=>!(r.date===date&&r.type===type));records.push({id:old?.id||String(Date.now())+'_'+index,date,type,counts});try{save()}catch(e){alert('Bộ nhớ trình duyệt đầy hoặc bị chặn: '+e.message);return}month=date.slice(0,7);let next=index+1;if(next<pending.length){showReview(pending[next],next)}else{pending=[];closeModal();switchPage(type)}}
 function editRecord(id){let r=records.find(r=>r.id===id);if(!r)return;pending=[{...r,expected:r.counts.reduce((a,b)=>a+b,0)}];showReview(pending[0],0)}
 function deleteRecord(id){if(!confirm('Xóa bản ghi này?'))return;records=records.filter(r=>r.id!==id);save();render()}
 function openRates(type=page==='tong'?'giao':page){if(!RATE_TABLE[type])type='giao';showModal(`<div class="between"><h2>Biểu phí SPX (nghìn đồng)</h2><button class="link" onclick="closeModal()">✕</button></div><div class="field"><select onchange="openRates(this.value)">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><div class="notice">Các ô là tổng tiền tại mốc, không phải số tiền cộng thêm ở mỗi mốc.</div><div class="scrollrates"><table><thead><tr><th>Từ</th><th>Đến</th>${WEIGHTS.map(w=>`<th>${w}</th>`).join('')}</tr></thead><tbody>${RATE_TABLE[type].map(r=>`<tr>${r.map((v,i)=>`<td>${i===1&&v===999999?'Trở lên':fmtInt(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`)}
-function exportCSV(){const rows=[['Ngày','Nghiệp vụ',...WEIGHTS,'Tổng đơn'],...records.filter(r=>r.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,TYPES.find(t=>t.id===r.type)?.label,...r.counts,r.counts.reduce((a,b)=>a+b,0)]),[],['Tháng',month],['Nghiệp vụ','Tổng đơn','Tiền thưởng (VND)'],...TYPES.slice(0,3).map(t=>[t.label,sums(t.id).reduce((a,b)=>a+b,0),total(t.id)]),['TỔNG', '',allTotal()]];const csv='\ufeff'+rows.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),`SPX_${month}.csv`)}
+function exportCSV(){const rows=[['Ngày','Nhiệm vụ',...WEIGHTS,'Tổng đơn'],...records.filter(r=>r.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[r.date,TYPES.find(t=>t.id===r.type)?.label,...r.counts,r.counts.reduce((a,b)=>a+b,0)]),[],['Tháng',month],['Nhiệm vụ','Tổng đơn','Tiền thưởng (VND)'],...TYPES.slice(0,3).map(t=>[t.label,sums(t.id).reduce((a,b)=>a+b,0),total(t.id)]),['TỔNG', '',allTotal()]];const csv='\ufeff'+rows.map(row=>row.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),`SPX_${month}.csv`)}
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function parseOCR(text){let s=text.replace(/\r/g,'').replace(/[–—]/g,'-');let type=/đã\s*(?:trả\s*hàng|hoàn)|trả\s*hàng/i.test(s)?'hoan':/đã\s*lấy/i.test(s)?'lay':'giao';let date=today(),m=s.match(/(?:chi\s*tiết\s*đơn\s*theo\s*ngày|theo\s*ngày)[^\n]*?([0-3]?\d)[\/\-.]([01]?\d)(?:[\/\-.](20\d{2}))?/i);if(m){const year=m[3]||month.slice(0,4);const d=String(m[1]).padStart(2,'0'),mo=String(m[2]).padStart(2,'0');if(+mo<=12&&+d<=31)date=`${year}-${mo}-${d}`}
 let expected=null;const totalMatch=s.match(/t[oôổ]ng\s*([\d., ]+)\s*(?:đ[oơ]n|don)/i);if(totalMatch)expected=Number(totalMatch[1].replace(/\D/g,''));
@@ -312,7 +312,34 @@ async function scanMappedCards(worker,data,expected){
 }
 async function readImage(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
 async function loadTesseract(){if(window.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được bộ OCR. Kiểm tra kết nối Internet.'));document.head.appendChild(s)})}
-async function selectedTab(data){try{let im=new Image();im.src=data;await im.decode();let c=document.createElement('canvas');c.width=420;c.height=Math.round(im.height*420/im.width);let ctx=c.getContext('2d');ctx.drawImage(im,0,0,c.width,c.height);let pixels=ctx.getImageData(0,0,c.width,Math.floor(c.height*.32)).data;let bands=[0,0,0];for(let y=Math.floor(c.height*.11);y<Math.floor(c.height*.28);y++)for(let x=45;x<300;x++){let k=(y*c.width+x)*4,r=pixels[k],g=pixels[k+1],b=pixels[k+2];if(r>170&&r>g*1.4&&g>b*.85&&g<150){bands[Math.min(2,Math.floor((x-45)/85))]++}}let max=Math.max(...bands);return max>12?['giao','lay','hoan'][bands.indexOf(max)]:null}catch(e){return null}}
+async function selectedTab(data){
+ // SPX screenshots show all three tab names: determine the active one from the orange underline.
+ try{
+  const im=new Image();im.src=data;await im.decode();
+  const w=420,h=Math.round(im.height*w/im.width),c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(im,0,0,w,h);
+  const dataPx=ctx.getImageData(0,0,w,Math.min(h,Math.round(h*.40))).data;
+  // Find solid orange horizontal strokes in the upper 40%, rather than counting orange text.
+  const candidates=[];
+  for(let y=Math.round(h*.08);y<Math.min(Math.round(h*.40),h);y++){
+   let runStart=-1;
+   for(let x=12;x<=w-12;x++){
+    const k=(y*w+x)*4,r=dataPx[k],g=dataPx[k+1],b=dataPx[k+2];
+    const orange=r>165&&r>g*1.35&&g>b*1.15&&g<175&&b<145;
+    if(orange&&runStart<0)runStart=x;
+    if((!orange||x===w-12)&&runStart>=0){const len=x-runStart;
+     if(len>=13&&len<=85)candidates.push({x:runStart+len/2,y,len});runStart=-1;
+    }
+   }
+  }
+  // The tab underline is below the tab labels, typically around 16-27% of screenshot height.
+  const tabLines=candidates.filter(v=>v.y>h*.11&&v.y<h*.31&&v.x<w*.82);
+  if(!tabLines.length)return null;
+  const groups=[0,0,0];for(const v of tabLines){const col=v.x<w*.31?0:v.x<w*.53?1:v.x<w*.78?2:-1;if(col>=0)groups[col]+=v.len;}
+  const best=Math.max(...groups),sorted=[...groups].sort((a,b)=>b-a);
+  return best>=26&&(sorted[1]===0||best>sorted[1]*1.65)?['giao','lay','hoan'][groups.indexOf(best)]:null;
+ }catch(e){return null}
+}
 // SPX V9 FAST OCR: một lượt toàn ảnh; chỉ quét từng thẻ khi chưa đủ tin cậy.
 // Tái sử dụng worker giữa các lần chọn ảnh để tránh tải lại dữ liệu ngôn ngữ.
 let spxOCRWorkerPromise=null;
@@ -338,10 +365,22 @@ function spxValidCounts(parsed){
   parsed.counts.every(n=>Number.isInteger(n)&&n>=0) &&
   spxSum(parsed.counts)===parsed.expected && (parsed.found>0 || parsed.expected===0);
 }
+// Keep the display awake while browser OCR is actively processing images.
+let spxWakeLock=null;
+async function spxKeepScreenOn(){
+ if(!('wakeLock' in navigator) || !navigator.wakeLock || !navigator.wakeLock.request)return false;
+ try{spxWakeLock=await navigator.wakeLock.request('screen');return true}
+ catch(e){return false}
+}
+async function spxAllowScreenSleep(){
+ const lock=spxWakeLock;spxWakeLock=null;
+ if(lock){try{await lock.release()}catch(e){}}
+}
 async function processPhotos(files){
  if(!files.length || spxOCRBusy)return;
  spxOCRBusy=true;
- showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">Fast OCR: đọc 8 mốc cân, chỉ quét bổ sung khi cần và luôn đối chiếu tổng đơn trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị OCR…</p>`);
+ const spxScreenAwake=await spxKeepScreenOn();
+ showModal(`<h2>✦ Đang phân tích ảnh SPX</h2><p class="muted">Fast OCR: đọc 8 mốc cân, chỉ quét bổ sung khi cần và luôn đối chiếu tổng đơn trước khi lưu.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang chuẩn bị OCR…</p>${spxScreenAwake?'<p class="muted">☀ Màn hình sẽ được giữ sáng trong lúc quét.</p>':'<p class="muted">⚠ Trình duyệt hiện tại không hỗ trợ giữ sáng màn hình. Hãy tăng thời gian chờ màn hình trong Cài đặt nếu cần.</p>'}`);
  try{
   const worker=await getSPXOCRWorker();
   const results=[];
@@ -380,14 +419,14 @@ async function processPhotos(files){
     }
    }
    parsed.found=parsed.counts.filter(v=>v>0).length;
-   parsed.type=spxScanType||((await selectedTab(data))||'giao');
+   parsed.type=spxScanType||(await selectedTab(data))||null;
    results.push({...parsed,preview:data});
   }
   pending=results;
   if(results.length)showReview(results[0],0);else closeModal();
  }catch(e){
   showModal(`<h2>Không thể quét ảnh</h2><div class="notice">${esc(e&&e.message||String(e))}</div><button class="btn full" onclick="closeModal()">Đóng</button>`);
- }finally{spxOCRBusy=false}
+ }finally{spxOCRBusy=false;await spxAllowScreenSleep()}
 }
 // Native ML Kit OCR: one Android recognition pass per photo, with spatial pairing.
 let spxNativeResults=[],spxNativeErrors=[];
@@ -424,12 +463,19 @@ function spxReadTotal(result){
  const m=normalize(raw).replace(/\s+/g,' ').match(/\btong\s*[:：-]?\s*(\d{1,6})\s*(?:don\s*hang|don\b)/i);
  return m?Number(m[1]):null;
 }
+// Only accept a native type if OCR provides an unambiguous active-tab cue.
+// Most SPX screenshots show all three tab labels; in that case require review.
+function spxDetectNativeType(result){
+ const text=String(result.text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase();
+ const markers=[['giao',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?giao\b/m],['lay',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?lay\b/m],['hoan',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?(?:tra|hoan)\b/m]].filter(x=>x[1].test(text));
+ return markers.length===1?markers[0][0]:null;
+}
 function spxNativeParse(result){
  const parsed=parseOCR(result.text||'');
  parsed.expected=spxReadTotal(result);
  // ML Kit chỉ trả chữ của cả 3 tab, không trả tab được gạch chân.
- // Giữ đúng nghiệp vụ mà người dùng đang mở thay vì đoán theo chữ 'Đã trả hàng'.
- parsed.type=spxScanType||'giao';
+ // Giữ đúng nhiệm vụ mà người dùng đang mở thay vì đoán theo chữ 'Đã trả hàng'.
+ parsed.type=spxScanType||spxDetectNativeType(result);
  const lines=(result.lines||[]).slice().sort((a,b)=>a.y-b.y||a.x-b.x);
  const counts=Array(8).fill(0),recognized=new Set(),debug=[];
  const width=result.width||1;
@@ -484,7 +530,7 @@ renderType=function(type){return spxOriginalRenderType(type).replace(/<div class
 // The original daily card is the last top-level card in renderType; remove precisely by prefix.
 renderType=function(type){const html=spxOriginalRenderType(type);const marker='<div class="card"><div class="between"><h2>Nhật ký sản lượng từng ngày</h2>';const i=html.indexOf(marker);const main=i<0?html:html.slice(0,i);const scan='<div style="margin-bottom:18px"><button class="btn full" onclick="choosePhotos()">✦ Quét từ ảnh</button></div>';const buttons='<div class="spx-action-pair"><button class="btn" onclick="choosePhotos()">✦ Quét từ ảnh</button><button class="btn secondary" onclick="spxManualForm()">✎ Nhập thủ công</button></div>';return main.replace(scan,buttons)};
 const spxOriginalRenderSummary=renderSummary;
-renderSummary=function(){const html=spxOriginalRenderSummary();const marker='<div class="card"><h2>Nhật ký tất cả nghiệp vụ</h2>';const i=html.indexOf(marker);return i<0?html:html.slice(0,i)};
+renderSummary=function(){const html=spxOriginalRenderSummary();const marker='<div class="card"><h2>Nhật ký tất cả nhiệm vụ</h2>';const i=html.indexOf(marker);return i<0?html:html.slice(0,i)};
 const spxTypes=[...TYPES,{id:'nhatky',label:'Nhật Ký',icon:'📅'}];
 const spxOldSwitchPage=switchPage;
 switchPage=function(p){page=p;render();window.scrollTo(0,0)};
@@ -495,10 +541,10 @@ function spxManualForm(date=today(),type=(['giao','lay','hoan'].includes(page)?p
  if(fromDay!==null)spxEditingFromDay=fromDay;
  const old=records.find(r=>r.date===date&&r.type===type);
  const counts=old?old.counts:Array(8).fill(0);
- showModal(`<div class="between"><h2>✎ ${old?'Sửa sản lượng':'Nhập sản lượng thủ công'}</h2><button type="button" class="spx-manual-close" aria-label="Đóng chỉnh sửa" onclick="spxCancelManual()">✕</button></div><div class="field"><label>Ngày</label><input id="manualDate" type="date" value="${esc(date)}" onchange="spxManualChange()"></div><div class="field"><label>Nghiệp vụ</label><select id="manualType" onchange="spxManualChange()">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${t.id===type?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>Số đơn theo 8 mốc cân</h3>${weightsEditor(counts)}<div class="notice success" id="manualTotal">Tổng: ${counts.reduce((a,b)=>a+num(b),0)} đơn</div><button class="btn full" onclick="spxSaveManual()">✓ Lưu</button><button class="btn secondary full" style="margin-top:10px" onclick="spxDeleteDayType('${date}','${type}')">🗑 Xóa</button><p class="foot">Nhập 0 cho mốc không có đơn. Dữ liệu cùng ngày và nghiệp vụ sẽ được cập nhật, không cộng trùng.</p>`);
+ showModal(`<div class="between"><h2>✎ ${old?'Sửa sản lượng':'Nhập sản lượng thủ công'}</h2><button type="button" class="spx-manual-close" aria-label="Đóng chỉnh sửa" onclick="spxCancelManual()">✕</button></div><div class="field"><label>Ngày</label><input id="manualDate" type="date" value="${esc(date)}" onchange="spxManualChange()"></div><div class="field"><label>Nhiệm vụ</label><select id="manualType" onchange="spxManualChange()">${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${t.id===type?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>Số đơn theo 8 mốc cân</h3>${weightsEditor(counts)}<div class="notice success" id="manualTotal">Tổng: ${counts.reduce((a,b)=>a+num(b),0)} đơn</div><button class="btn full" onclick="spxSaveManual()">✓ Lưu</button><button class="btn secondary full" style="margin-top:10px" onclick="spxDeleteDayType('${date}','${type}')">🗑 Xóa</button><p class="foot">Nhập 0 cho mốc không có đơn. Dữ liệu cùng ngày và nhiệm vụ sẽ được cập nhật, không cộng trùng.</p>`);
 }
 function spxManualChange(){const date=$('#manualDate')?.value,type=$('#manualType')?.value;if(!date||!type)return;spxManualForm(date,type)}
-function spxSaveManual(){const date=$('#manualDate')?.value,type=$('#manualType')?.value;if(!date||!['giao','lay','hoan'].includes(type)){alert('Chọn ngày và nghiệp vụ hợp lệ.');return}const inputs=WEIGHTS.map((_,i)=>$('#w'+i).value.trim());if(inputs.some(v=>v===''||!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v)))){alert('Số đơn phải là số nguyên không âm ở cả 8 mốc.');return}const counts=inputs.map(Number),old=records.find(r=>r.date===date&&r.type===type);if(old&&!confirm('Cập nhật '+TYPES.find(t=>t.id===type).label+' ngày '+date.split('-').reverse().join('/')+'?'))return;records=records.filter(r=>!(r.date===date&&r.type===type));records.push({id:old?.id||String(Date.now())+'_'+Math.random().toString(36).slice(2,8),date,type,counts});save();month=date.slice(0,7);closeModal();switchPage('nhatky');spxOpenDay(date)}
+function spxSaveManual(){const date=$('#manualDate')?.value,type=$('#manualType')?.value;if(!date||!['giao','lay','hoan'].includes(type)){alert('Chọn ngày và nhiệm vụ hợp lệ.');return}const inputs=WEIGHTS.map((_,i)=>$('#w'+i).value.trim());if(inputs.some(v=>v===''||!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v)))){alert('Số đơn phải là số nguyên không âm ở cả 8 mốc.');return}const counts=inputs.map(Number),old=records.find(r=>r.date===date&&r.type===type);if(old&&!confirm('Cập nhật '+TYPES.find(t=>t.id===type).label+' ngày '+date.split('-').reverse().join('/')+'?'))return;records=records.filter(r=>!(r.date===date&&r.type===type));records.push({id:old?.id||String(Date.now())+'_'+Math.random().toString(36).slice(2,8),date,type,counts});save();month=date.slice(0,7);closeModal();switchPage('nhatky');spxOpenDay(date)}
 function spxDeleteDayType(date,type){if(!records.some(r=>r.date===date&&r.type===type)){alert('Ngày này chưa có dữ liệu '+TYPES.find(t=>t.id===type).label+' để xóa.');return;}if(!confirm('Xóa '+TYPES.find(t=>t.id===type).label+' ngày '+date.split('-').reverse().join('/')+'?'))return;records=records.filter(r=>!(r.date===date&&r.type===type));save();closeModal();switchPage('nhatky')}
 document.addEventListener('input',e=>{if(!e.target.matches('[id^="w"]')||!$('#manualTotal'))return;const sum=WEIGHTS.reduce((a,_,i)=>a+Math.max(0,Number($('#w'+i)?.value)||0),0);$('#manualTotal').textContent='Tổng: '+sum+' đơn'});
 function spxDayData(date){const data={};for(const t of TYPES.slice(0,3)){const rows=records.filter(r=>r.date===date&&r.type===t.id);const counts=Array(8).fill(0);for(const r of rows)r.counts.forEach((n,i)=>counts[i]+=num(n));data[t.id]={counts,count:counts.reduce((a,b)=>a+b,0),money:counts.reduce((a,n,i)=>a+reward(t.id,n,i),0)}}return data}
@@ -514,6 +560,99 @@ function spxBackToJournal(){closeModal();switchPage("nhatky");}
 function spxOpenDay(date){const d=spxDayData(date),sum=Object.values(d).reduce((a,x)=>a+x.money,0);showModal(`<div class="spx-day-toolbar"><button type="button" class="spx-back-button" onclick="spxBackToJournal()">← Quay về</button><h2>📅 Chi tiết ngày ${date.split('-').reverse().join('/')}</h2></div><div class="daily-detail">${[['giao','🚚','Đơn giao'],['lay','📦','Đơn lấy'],['hoan','↶','Đơn trả']].map(([t,ic,label])=>`<div class="section ${t}"><div class="section-header"><b>${ic} ${label}</b><span>Tổng: ${d[t].count} đơn</span><strong>${fmt(d[t].money)}</strong></div><div style="margin:8px 0 10px"><button class="smallbtn" onclick="spxManualForm('${date}','${t}',true)">✎ Chỉnh sửa</button></div><div class="tablewrap"><table><thead><tr><th>Mốc cân</th><th>Số đơn</th><th>Tiền</th></tr></thead><tbody>${WEIGHTS.map((w,i)=>`<tr><td>${w}</td><td>${d[t].counts[i]}</td><td>${fmt(reward(t,d[t].counts[i],i))}</td></tr>`).join('')}</tbody></table></div></div>`).join('')}<div class="day-total"><span>💰 Tổng tiền ngày:</span><strong>${fmt(sum)}</strong></div><p class="foot">Tiền trong chi tiết ngày được tính theo mốc sản lượng của riêng ngày đó. Tiền thưởng tháng vẫn tính theo sản lượng tích lũy trong tháng.</p></div>`)}
 const spxNavIcons={giao:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="12" height="10" rx="1"/><path d="M14 10h4l4 4v3h-8M2 17h2m8 0h6"/><circle cx="7" cy="18" r="2"/><circle cx="19" cy="18" r="2"/></svg>`,lay:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 7 9-5 9 5v11l-9 5-9-5zM3 7l9 5 9-5M12 12v11M7.5 4.5l9 5"/></svg>`,hoan:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 3 8l6-6M3 8h11a7 7 0 0 1 0 14h-4"/></svg>`,tong:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 18v-5M11 18V9M16 18v-7M21 18V5M3 11l6-5 4 3 8-7M17 2h4v4"/></svg>`,nhatky:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="17" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M7 14h3M14 14h3M7 18h3M14 18h3"/></svg>`};render=function(){const bottom=[TYPES.find(t=>t.id==='tong'),...TYPES.filter(t=>t.id!=='tong'),{id:'nhatky',label:'Nhật Ký'}];$('#nav').innerHTML=bottom.map(t=>`<button class="${page===t.id?'active':''}" onclick="switchPage('${t.id}')"><span class="nav-icon">${spxNavIcons[t.id]}</span><span class="nav-label">${t.label}</span></button>`).join('');$('#page').innerHTML=page==='nhatky'?spxJournal():page==='tong'?renderSummary():renderType(page)};
 function spxSettings(){showModal(`<div class="between"><h2>⚙ Cài đặt SPX V9</h2><button class="link" onclick="closeModal()">✕</button></div><p class="muted">Dữ liệu được lưu trên thiết bị. Có thể xuất bản sao CSV để lưu trữ.</p><button class="btn full" onclick="exportCSV()">Xuất bản sao dữ liệu CSV</button>`)}
+
+
+/* SPX V9 upgrade: batch review, calendar, productivity, monthly goal. */
+const spxBaseParseOCR=parseOCR;
+function spxDateFromText(raw){
+ const text=String(raw||'');
+ const m=text.match(/(?:chi\s*tiết\s*đơn\s*theo\s*ngày|theo\s*ngày|ngày)\s*[:：-]?\s*([0-3]?\d)\s*[\/\-.]\s*([01]?\d)(?:\s*[\/\-.]\s*(20\d\d))?/i);
+ if(!m)return null;
+ const y=Number(m[3]||spxScanYear),mo=Number(m[2]),d=Number(m[1]);
+ const date=new Date(y,mo-1,d);
+ if(date.getFullYear()!==y||date.getMonth()!==mo-1||date.getDate()!==d)return null;
+ return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+let spxScanYear=new Date().getFullYear();
+parseOCR=function(text){const r=spxBaseParseOCR(text);r.date=spxDateFromText(text)||'';return r};
+const spxOriginalChoosePhotos=choosePhotos;
+choosePhotos=function(){
+ spxMixedScan=false;
+ const v=prompt('Năm của các ảnh cần quét (ảnh chỉ ghi ngày/tháng):',String(new Date().getFullYear()));
+ if(v===null)return;
+ if(!/^20\d{2}$/.test(v)){alert('Nhập năm hợp lệ gồm 4 chữ số.');return}
+ spxScanYear=Number(v);spxOriginalChoosePhotos();
+};
+function spxTypeLabel(t){return TYPES.find(x=>x.id===t)?.label||'Chưa rõ'}
+function spxBatchStatus(item){
+ const sum=(item.counts||[]).reduce((a,b)=>a+num(b),0);
+ if(!/^20\d\d-\d\d-\d\d$/.test(item.date||''))return ['bad','Thiếu ngày/tháng'];
+ if(!['giao','lay','hoan'].includes(item.type))return ['bad','Thiếu nhiệm vụ'];
+ if(item.expected===null||item.expected===undefined)return ['bad','Thiếu tổng SPX'];
+ if(sum!==Number(item.expected))return ['bad','Tổng không khớp'];
+ if((item.found||0)<1 && sum!==0)return ['bad','Chưa rõ mốc cân'];
+ return ['ok','Khớp tổng'];
+}
+function spxBatchKey(r){return (r.date||'')+'|'+(r.type||'')}
+function spxBatchSame(a,b){return spxBatchKey(a)===spxBatchKey(b)&&JSON.stringify(a.counts)===JSON.stringify(b.counts)}
+function spxBatchDuplicates(){
+ const seen=new Map(),result=new Map();
+ pending.forEach((r,i)=>{if(!r.date||!r.type)return;const k=spxBatchKey(r);if(seen.has(k)){const j=seen.get(k);result.set(i,spxBatchSame(r,pending[j])?'same':'conflict');result.set(j,spxBatchSame(r,pending[j])?'same':'conflict')}else seen.set(k,i)});
+ return result;
+}
+function spxBatchList(){
+ pending.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+ const duplicates=spxBatchDuplicates();
+ const rows=pending.map((r,i)=>{
+  const [status,label]=spxBatchStatus(r),dup=duplicates.get(i),existing=records.some(x=>x.date===r.date&&x.type===r.type),sum=(r.counts||[]).reduce((a,b)=>a+num(b),0);
+  const warn=dup==='same'?'Ảnh giống hệt':dup==='conflict'?'Cùng ngày/nhiệm vụ, khác số liệu':existing?'Đã có trong nhật ký':label;
+  return `<div class="entry"><div class="between"><b>Ảnh ${i+1} · ${esc(r.date?r.date.split('-').reverse().join('/'):'Chưa có ngày')}</b><span class="${status==='ok'&&!dup&&!existing?'money':'danger'}">${esc(warn)}</span></div><p class="kicker">${esc(spxTypeLabel(r.type))} · ${sum} đơn · Tổng ảnh: ${r.expected??'?'}</p><button class="smallbtn" onclick="spxBatchEdit(${i})">✎ Kiểm tra / Sửa</button> <button class="smallbtn danger" onclick="spxBatchRemove(${i})">Xóa khỏi danh sách</button></div>`;
+ }).join('');
+ const valid=pending.filter((r,i)=>spxBatchStatus(r)[0]==='ok'&&!duplicates.has(i)&&!records.some(x=>x.date===r.date&&x.type===r.type)).length;
+ showModal(`<div class="between"><h2>📷 Kiểm tra ${pending.length} ảnh</h2><button class="link" onclick="closeModal()">✕</button></div><p class="muted">Mỗi ngày có thể có đủ 3 nhiệm vụ. Đơn Giao, Đơn Lấy và Đơn Trả được lưu riêng.</p><div class="notice">${valid} ảnh có thể lưu ngay · ${pending.length-valid} ảnh cần xem lại hoặc đã tồn tại.</div><div style="max-height:56vh;overflow:auto">${rows||'<p>Danh sách trống.</p>'}</div><button class="btn full" onclick="spxBatchCommit()" ${!valid?'disabled':''}>✓ Lưu ${valid} ảnh hợp lệ</button><p class="foot">Ảnh trùng, thiếu ngày hoặc sai tổng sẽ được giữ lại để kiểm tra. Không tự cộng hoặc ghi đè dữ liệu cũ.</p>`);
+}
+function spxBatchRemove(i){pending.splice(i,1);spxBatchList()}
+function spxBatchEdit(i){const r=pending[i];const sum=r.counts.reduce((a,b)=>a+num(b),0);showModal(`<div class="between"><h2>Kiểm tra ảnh ${i+1}/${pending.length}</h2><button class="link" onclick="spxBatchList()">← Danh sách</button></div>${r.preview?`<img class="preview" src="${r.preview}">`:''}<div class="field"><label>Ngày (năm đã chọn: ${spxScanYear})</label><input id="recordDate" type="date" value="${esc(r.date||'')}"></div><div class="field"><label>Nhiệm vụ</label><select id="recordType"><option value="" ${!r.type?'selected':''}>-- Chọn nhiệm vụ --</option>${TYPES.slice(0,3).map(t=>`<option value="${t.id}" ${t.id===r.type?'selected':''}>${t.label}</option>`).join('')}</select></div><h3>8 mốc cân</h3>${weightsEditor(r.counts)}<div class="field"><label>Tổng SPX trên ảnh</label><input id="expected" type="number" min="0" value="${r.expected??''}"></div><div id="sumNotice" class="notice">Tổng 8 mốc: ${sum} đơn</div><button class="btn full" onclick="spxBatchApply(${i})">✓ Xác nhận ảnh này</button>${r.ocrDebug?`<details><summary>Chi tiết OCR</summary><pre style="white-space:pre-wrap;font-size:11px">${esc(r.ocrDebug)}</pre></details>`:''}`)}
+function spxBatchApply(i){const date=$('#recordDate').value,type=$('#recordType').value,vals=WEIGHTS.map((_,j)=>$('#w'+j).value.trim()),expected=$('#expected').value.trim();if(!date||!['giao','lay','hoan'].includes(type)||vals.some(v=>!/^(0|[1-9]\d*)$/.test(v))||!/^(0|[1-9]\d*)$/.test(expected)){alert('Kiểm tra ngày, 8 số nguyên không âm và tổng SPX.');return}const counts=vals.map(Number),sum=counts.reduce((a,b)=>a+b,0);if(sum!==Number(expected)){alert('Tổng 8 mốc khác tổng SPX. Chưa thể xác nhận.');return}pending[i]={...pending[i],date,type,counts,expected:Number(expected),found:Math.max(1,pending[i].found||0)};spxBatchList()}
+function spxBatchCommit(){
+ const duplicates=spxBatchDuplicates(),valid=[],remain=[];
+ pending.forEach((r,i)=>{
+  if(spxBatchStatus(r)[0]==='ok'&&!duplicates.has(i)&&!records.some(x=>x.date===r.date&&x.type===r.type))valid.push(r);
+  else remain.push(r);
+ });
+ if(!valid.length){alert('Không có ảnh hợp lệ mới để lưu. Hãy kiểm tra các ảnh còn lại.');return}
+ const now=Date.now(),newRecords=valid.map((r,i)=>({id:'batch_'+now+'_'+i,date:r.date,type:r.type,counts:r.counts.slice()}));
+ const updated=records.concat(newRecords);
+ try{localStorage.setItem('spx_records_v1',JSON.stringify(updated))}catch(e){alert('Không lưu được: '+e.message);return}
+ records=updated;month=valid[valid.length-1].date.slice(0,7);pending=remain;
+ if(remain.length){spxBatchList();alert('Đã lưu '+valid.length+' ảnh hợp lệ. Còn '+remain.length+' ảnh cần kiểm tra.')}else{closeModal();switchPage('nhatky');alert('Đã lưu '+valid.length+' ảnh thành công.')}
+}
+// Override native batch completion and browser OCR completion by intercepting showReview.
+const spxOldShowReview=showReview;
+showReview=function(item,index){if(pending.length===1 && !spxMixedScan)spxOldShowReview(item,index);else spxBatchList()};
+window.spxNativeDone=function(){pending=spxNativeResults.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));if(pending.length){spxBatchList();if(spxNativeErrors.length)alert(spxNativeErrors.join('\n'))}else showModal('<h2>Không thể quét ảnh</h2><div class="notice">'+esc(spxNativeErrors.join('\n')||'Không có kết quả')+'</div><button class="btn full" onclick="closeModal()">Đóng</button>')};
+
+// Goal tracking without altering the existing cumulative rate calculation.
+let spxGoals={};try{spxGoals=JSON.parse(localStorage.getItem('spx_goals_v9')||'{}')||{}}catch(e){}
+function spxSaveGoal(){const el=$('#spxGoalInput');if(!el||!/^(0|[1-9]\d*)$/.test(el.value)||!Number.isSafeInteger(Number(el.value))){alert('Nhập mục tiêu là số nguyên không âm.');return}spxGoals[month]=Number(el.value);try{localStorage.setItem('spx_goals_v9',JSON.stringify(spxGoals))}catch(e){alert('Không lưu được mục tiêu: '+e.message);return}render()}
+function spxGoalPanel(){const goal=Number(spxGoals[month])||0,earned=allTotal(),pct=goal?Math.min(100,earned/goal*100):0;return `<div class="card"><h2>🎯 Mục tiêu thu nhập</h2><div class="field"><label>Mục tiêu thưởng tháng ${esc(month.split('-').reverse().join('/'))} (đ)</label><input id="spxGoalInput" type="number" min="0" step="1" value="${goal}"></div><button class="btn secondary" onclick="spxSaveGoal()">Lưu mục tiêu</button><div class="divider"></div><div class="between"><b>Đã đạt ${fmt(earned)}</b><b>${Math.round(pct)}%</b></div><div class="progress"><div style="width:${pct}%"></div></div><p class="muted">${goal?'Còn thiếu: '+fmt(Math.max(0,goal-earned)):'Đặt mục tiêu để theo dõi tiến độ.'}</p></div>`}
+const spxSummaryBeforeGoal=renderSummary;
+renderSummary=function(){return spxSummaryBeforeGoal()+spxGoalPanel()};
+
+// One-button mixed-business scan. Keep individual business scan buttons unchanged.
+let spxMixedScan=false;
+function spxScanAllTypes(){
+ spxMixedScan=true;
+ const v=prompt('Năm của các ảnh cần quét (ảnh chỉ ghi ngày/tháng):',String(new Date().getFullYear()));
+ if(v===null)return;
+ if(!/^20\d{2}$/.test(v)){alert('Nhập năm hợp lệ gồm 4 chữ số.');return}
+ spxScanYear=Number(v);spxScanType=null;
+ if(window.SPXNative&&typeof window.SPXNative.pickImages==='function'){window.SPXNative.pickImages();return}
+ $('#photoInput').value='';$('#photoInput').click();
+}
+const spxSummaryWithScan=renderSummary;
+renderSummary=function(){return `<div class="card"><h2>📷 Quét tất cả nhiệm vụ</h2><p class="muted">Chọn ảnh Đơn Giao, Đơn Lấy và Đơn Trả cùng lúc. Nếu không xác định chắc nhiệm vụ, hãy chọn lại trong danh sách kiểm tra trước khi Lưu tất cả.</p><button class="btn full" onclick="spxScanAllTypes()">✦ Quét cả 3 nhiệm vụ</button></div>`+spxSummaryWithScan()};
+// Do not add calendar, analytics, or navigation tabs.
 
 $('#photoInput').addEventListener('change',e=>processPhotos([...e.target.files]));render();
 </script></body></html>
