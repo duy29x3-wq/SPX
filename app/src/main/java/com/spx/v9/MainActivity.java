@@ -125,7 +125,10 @@ public class MainActivity extends Activity {
                     }
                     obj.put("lines", lines);
                     // Preview is only for the user's manual verification, not OCR.
-                    obj.put("preview", makePreview(uri));
+                    String preview = makePreview(uri);
+                     obj.put("preview", preview);
+                     // Detect active tab from its orange underline in the original screenshot.
+                     obj.put("activeType", detectActiveTab(preview));
                     done++;
                     runJS("window.spxNativeResult&&window.spxNativeResult(" + obj.toString() + "," + done + "," + total + ")");
                 } catch (Exception e) { sendError("Lỗi chuyển kết quả: " + e.getMessage()); }
@@ -136,6 +139,50 @@ public class MainActivity extends Activity {
                 processNext();
             });
         } catch (Exception e) { sendError("Ảnh không hợp lệ: " + e.getMessage()); done++; processNext(); }
+    }
+
+    // Read the orange underline below the three SPX tabs. Return null if ambiguous.
+    private String detectActiveTab(String preview) {
+        try {
+            if (preview == null || preview.isEmpty()) return null;
+            int comma = preview.indexOf(',');
+            if (comma < 0) return null;
+            byte[] bytes = Base64.decode(preview.substring(comma + 1), Base64.DEFAULT);
+            Bitmap original = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            if (original == null) return null;
+            int w = 420;
+            int h = Math.max(1, Math.round(original.getHeight() * (w / (float)original.getWidth())));
+            Bitmap b = Bitmap.createScaledBitmap(original, w, h, true);
+            if (b != original) original.recycle();
+            int[] pixels = new int[w * h];
+            b.getPixels(pixels, 0, w, 0, 0, w, h);
+            b.recycle();
+            double[] scores = new double[3];
+            int minY = Math.round(h * .11f), maxY = Math.min(h - 1, Math.round(h * .31f));
+            for (int y = minY; y <= maxY; y++) {
+                int start = -1;
+                for (int x = 12; x < w - 11; x++) {
+                    int c = pixels[y * w + x];
+                    int r = (c >> 16) & 255, g = (c >> 8) & 255, bl = c & 255;
+                    boolean orange = r > 165 && r > g * 1.35 && g > bl * 1.15 && g < 175 && bl < 145;
+                    if (orange && start < 0) start = x;
+                    if ((!orange || x == w - 12) && start >= 0) {
+                        int len = x - start;
+                        if (len >= 13 && len <= 85) {
+                            float mid = start + len / 2f;
+                            int col = mid < w * .31f ? 0 : mid < w * .53f ? 1 : mid < w * .78f ? 2 : -1;
+                            if (col >= 0) scores[col] += len;
+                        }
+                        start = -1;
+                    }
+                }
+            }
+            int best = 0;
+            for (int i = 1; i < 3; i++) if (scores[i] > scores[best]) best = i;
+            double other = Math.max(scores[(best + 1) % 3], scores[(best + 2) % 3]);
+            if (scores[best] < 26 || (other > 0 && scores[best] <= other * 1.65)) return null;
+            return new String[]{"giao", "lay", "hoan"}[best];
+        } catch (Exception e) { Log.w("SPX", "Cannot identify selected tab", e); return null; }
     }
 
     private String makePreview(Uri uri) {
