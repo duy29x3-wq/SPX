@@ -419,7 +419,7 @@ async function processPhotos(files){
     }
    }
    parsed.found=parsed.counts.filter(v=>v>0).length;
-   parsed.type=spxScanType||(await selectedTab(data))||null;
+   parsed.type=spxScanType||(await spxTypeFromScreenshot(data))||(await selectedTab(data))||null;
    results.push({...parsed,preview:data});
   }
   pending=results;
@@ -431,7 +431,7 @@ async function processPhotos(files){
 // Native ML Kit OCR: one Android recognition pass per photo, with spatial pairing.
 let spxNativeResults=[],spxNativeErrors=[];
 window.spxNativeStart=function(n){
- spxNativeResults=[];spxNativeErrors=[];
+ spxNativeResults=[];spxNativeErrors=[];spxNativeTypeJobs=[];
  showModal(`<h2>⚡ ML Kit đang quét ảnh</h2><p class="muted">Đọc ${n} ảnh trực tiếp trên Android, không tải Tesseract.</p><progress id="ocrProgress" max="100" value="0"></progress><p id="ocrStatus">Đang nhận diện…</p>`);
 };
 window.spxNativeCancelled=function(){};
@@ -627,10 +627,67 @@ function spxBatchCommit(){
  records=updated;month=valid[valid.length-1].date.slice(0,7);pending=remain;
  if(remain.length){spxBatchList();alert('Đã lưu '+valid.length+' ảnh hợp lệ. Còn '+remain.length+' ảnh cần kiểm tra.')}else{closeModal();switchPage('nhatky');alert('Đã lưu '+valid.length+' ảnh thành công.')}
 }
+
+// Detect the active SPX tab from the orange underline in the screenshot.
+// This uses image pixels, not the OCR text (all three labels are present).
+async function spxTypeFromScreenshot(source){
+ if(!source)return null;
+ try{
+  const img=new Image();img.src=source;await img.decode();
+  const w=480,h=Math.max(1,Math.round(img.naturalHeight*w/img.naturalWidth));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
+  const pix=ctx.getImageData(0,0,w,h).data;
+  // Tab underline sits just below the three tab titles, normally in top 10-35%.
+  // Reject isolated orange glyphs: demand multiple adjacent rows of orange pixels.
+  const runs=[];
+  for(let y=Math.floor(h*.09);y<Math.min(h-2,Math.floor(h*.36));y++){
+   let start=-1;
+   for(let x=Math.floor(w*.045);x<=Math.floor(w*.94);x++){
+    const k=(y*w+x)*4,r=pix[k],g=pix[k+1],b=pix[k+2];
+    const orange=r>=185&&r>g*1.55&&g>=35&&g<=175&&b<125&&g>b*1.20;
+    if(orange&&start<0)start=x;
+    if((!orange||x===Math.floor(w*.94))&&start>=0){
+     const length=x-start;
+     if(length>=Math.round(w*.045)&&length<=Math.round(w*.18))runs.push({y,x:(start+x)/2,length});
+     start=-1;
+    }
+   }
+  }
+  const bands=new Map();
+  for(const r of runs){const k=Math.round(r.y/5);if(!bands.has(k))bands.set(k,[]);bands.get(k).push(r)}
+  const candidates=[];
+  for(const group of bands.values()){
+   const byCol=[[],[],[]];
+   for(const r of group){const i=r.x<w*.32?0:r.x<w*.57?1:r.x<w*.84?2:-1;if(i>=0)byCol[i].push(r)}
+   for(let i=0;i<3;i++)if(byCol[i].length>=2){
+    const ys=new Set(byCol[i].map(v=>v.y));
+    const len=byCol[i].reduce((a,v)=>a+v.length,0);
+    if(ys.size>=2)candidates.push({i,len,rows:ys.size});
+   }
+  }
+  candidates.sort((a,b)=>b.len-a.len);
+  if(!candidates.length||candidates[0].len<55)return null;
+  if(candidates[1]&&candidates[0].len<candidates[1].len*1.55)return null;
+  return ['giao','lay','hoan'][candidates[0].i];
+ }catch(e){return null}
+}
+// Native callback may provide a screenshot as preview, image, or imageData.
+// Keep callback completion ordered even if image decoding takes time.
+let spxNativeTypeJobs=[];
+const spxNativeResultBeforeTypeFix=window.spxNativeResult;
+window.spxNativeResult=function(result,done,total){
+ spxNativeResultBeforeTypeFix(result,done,total);
+ const item=spxNativeResults[spxNativeResults.length-1];
+ if(item&&!item.type){
+  const source=result.preview||result.image||result.imageData||'';
+  spxNativeTypeJobs.push(spxTypeFromScreenshot(source).then(t=>{if(t)item.type=t}));
+ }
+};
 // Override native batch completion and browser OCR completion by intercepting showReview.
 const spxOldShowReview=showReview;
 showReview=function(item,index){if(pending.length===1 && !spxMixedScan)spxOldShowReview(item,index);else spxBatchList()};
-window.spxNativeDone=function(){pending=spxNativeResults.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));if(pending.length){spxBatchList();if(spxNativeErrors.length)alert(spxNativeErrors.join('\n'))}else showModal('<h2>Không thể quét ảnh</h2><div class="notice">'+esc(spxNativeErrors.join('\n')||'Không có kết quả')+'</div><button class="btn full" onclick="closeModal()">Đóng</button>')};
+window.spxNativeDone=async function(){await Promise.allSettled(spxNativeTypeJobs);spxNativeTypeJobs=[];pending=spxNativeResults.slice().sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));if(pending.length){spxBatchList();if(spxNativeErrors.length)alert(spxNativeErrors.join('\n'))}else showModal('<h2>Không thể quét ảnh</h2><div class="notice">'+esc(spxNativeErrors.join('\n')||'Không có kết quả')+'</div><button class="btn full" onclick="closeModal()">Đóng</button>')};
 
 // Goal tracking without altering the existing cumulative rate calculation.
 let spxGoals={};try{spxGoals=JSON.parse(localStorage.getItem('spx_goals_v9')||'{}')||{}}catch(e){}
