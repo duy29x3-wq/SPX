@@ -12,6 +12,12 @@ order-radius:24px 24px 0 0;padding:20px 17px 35px}.weightrow{display:grid;grid-t
 .modal:has(.daily-detail)>.spx-day-toolbar h2{font-size:clamp(13px,3.6vw,18px);min-width:0;line-height:1.25;}
 .modal:has(.daily-detail)>.spx-day-toolbar .spx-back-button{flex-shrink:0;padding:12px 11px;}
 .modal:has(.daily-detail)>.daily-detail{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 0 32px;}
+</style><style id="spx-month-modern-v1">
+.spx-month-picker{display:flex;align-items:center;gap:5px;flex-shrink:0;background:linear-gradient(145deg,#fff,#fff7f3);border:1px solid #ffddd0;border-radius:17px;padding:4px;box-shadow:0 3px 10px #fa48160c;min-width:168px}
+.spx-month-arrow{width:32px;height:38px;border:0;border-radius:12px;background:#fff0e9;color:#e94a19;font-size:27px;font-weight:600;line-height:1;cursor:pointer}
+.spx-month-arrow:active{background:#ffd9c8}.spx-month-center{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;flex:1;min-width:92px;cursor:pointer;color:#252a30}.spx-month-icon{font-size:17px;color:#fa4816}.spx-month-name{font-size:13px;line-height:1.2;font-weight:800;text-align:center;white-space:nowrap}.spx-month-name small{display:block;font-size:11px;color:#858585;font-weight:600;margin-top:2px}
+.spx-month-native{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+@media(max-width:370px){.spx-month-picker{min-width:151px}.spx-month-arrow{width:27px}.spx-month-icon{display:none}.spx-month-name{font-size:12px}}
 </style></head><body><div class="shell"><header><div class="logo">🚚</div><div class="heading">Sản Lượng Đơn SPX</div><button title="Biểu phí" onclick="openRates()">▤</button></header><main><div id="page"></div></main></div><nav class="nav" id="nav"></nav><div id="modalRoot"></div><input type="file" id="photoInput" accept="image/*" multiple hidden><script>
 'use strict';
 const TYPES=[{id:'giao',label:'Đơn Giao',icon:'🚚'},{id:'lay',label:'Đơn Lấy',icon:'📥'},{id:'hoan',label:'Đơn Trả',icon:'↶'},{id:'tong',label:'Tổng Kết',icon:'▥'}];
@@ -223,7 +229,8 @@ function range(r){return r?(r[1]===999999?`${fmtInt(r[0])}+`:`${fmtInt(r[0])} - 
 function fmtInt(n){return n.toLocaleString('vi-VN')}
 function switchPage(p){page=p;render();window.scrollTo(0,0)}
 function render(){let nav=$('#nav');nav.innerHTML=TYPES.map(t=>`<button class="${page===t.id?'active':''}" onclick="switchPage('${t.id}')"><span>${t.icon}</span>${t.label}</button>`).join('');$('#page').innerHTML=page==='tong'?renderSummary():renderType(page)}
-function monthControl(){return `<input class="month" aria-label="Tháng" type="month" value="${month}" onchange="month=this.value;render()">`}
+function spxMoveMonth(step){const [y,m]=month.split('-').map(Number);const d=new Date(y,m-1+step,1);month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');render()}
+function monthControl(){const [year,mm]=month.split('-');return `<div class="spx-month-picker" aria-label="Chọn tháng thống kê"><button type="button" class="spx-month-arrow" aria-label="Tháng trước" onclick="spxMoveMonth(-1)">‹</button><label class="spx-month-center"><span class="spx-month-icon">▦</span><span class="spx-month-name">Tháng ${Number(mm)}<small>${year}</small></span><input class="spx-month-native" aria-label="Chọn tháng và năm" type="month" value="${month}" onchange="if(this.value){month=this.value;render()}"></label><button type="button" class="spx-month-arrow" aria-label="Tháng sau" onclick="spxMoveMonth(1)">›</button></div>`}
 function renderType(type){const t=TYPES.find(t=>t.id===type),a=sums(type),count=a.reduce((x,y)=>x+y,0),money=total(type),b=bracket(type,count),recs=monthly(type).sort((x,y)=>y.date.localeCompare(x.date));return `
 <div class="between" style="margin:0 0 14px"><b>${t.icon} ${t.label}</b>${monthControl()}</div>
 <div class="card"><div class="flex"><div class="iconcircle greenCircle">💵</div><div><div class="muted">Số tiền nhận được (Theo mốc)</div><div class="big">${fmt(money)}</div><div class="tag">Tổng ${fmtInt(count)} đơn • ${month.split('-').reverse().join('/')}</div></div></div><div class="divider"></div><h3>Chi tiết theo từng mức cân nặng</h3>${detailTable(type,a)}<p class="foot">* Tiền mỗi mức cân là giá trị tích lũy tại mốc đang đạt, không cộng lại các mốc trước.</p></div>
