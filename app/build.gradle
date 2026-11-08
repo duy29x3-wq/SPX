@@ -1,4 +1,3 @@
-
 plugins {
     id 'com.android.application'
 }
@@ -11,8 +10,24 @@ android {
         applicationId 'com.spx.v9'
         minSdk 24
         targetSdk 35
-        versionCode 10
-        versionName '10.0'
+        versionCode 11
+        versionName '11.0'
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv('SPX_KEYSTORE_PATH') ?: 'spx-v9-release.jks')
+            storePassword System.getenv('SPX_KEYSTORE_PASSWORD') ?: ''
+            keyAlias 'spxv9'
+            keyPassword System.getenv('SPX_KEY_PASSWORD') ?: ''
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
     }
 }
 
