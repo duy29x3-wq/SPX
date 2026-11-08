@@ -1,5 +1,4 @@
-
-name: Build SPX V9 APK
+name: Build SPX V9 APK (Updateable)
 
 on:
   push:
@@ -40,13 +39,28 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Restore fixed release signing key
+        env:
+          SPX_KEYSTORE_BASE64: ${{ secrets.SPX_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$SPX_KEYSTORE_BASE64" ]; then
+            echo 'Missing SPX_KEYSTORE_BASE64 GitHub secret' >&2
+            exit 1
+          fi
+          printf '%s' "$SPX_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/spx-v9-release.jks"
+          echo "SPX_KEYSTORE_PATH=$RUNNER_TEMP/spx-v9-release.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          SPX_KEYSTORE_PASSWORD: ${{ secrets.SPX_KEYSTORE_PASSWORD }}
+          SPX_KEY_PASSWORD: ${{ secrets.SPX_KEY_PASSWORD }}
+        run: |
+          test -n "$SPX_KEYSTORE_PASSWORD" && test -n "$SPX_KEY_PASSWORD" || { echo 'Missing signing password secrets' >&2; exit 1; }
+          gradle --no-daemon assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SPX-V9-Offline-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: SPX-V9-Update-APK
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
-  
