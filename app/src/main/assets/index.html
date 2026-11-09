@@ -487,6 +487,7 @@ async function processPhotos(files){
     }
    }
    parsed.found=parsed.counts.filter(v=>v>0).length;
+   parsed.ocrAutoVerified=false; // Browser OCR requires manual verification; no spatial evidence of image completeness.
    parsed.type=spxScanType||(await selectedTab(data))||null;
    results.push({...parsed,preview:data});
    spxScanImageCount(i+1,files.length);spxScanProgress((i+1)/files.length*100);
@@ -552,12 +553,15 @@ function spxNativeParse(result){
  parsed.type=spxScanType||(['giao','lay','hoan'].includes(result.activeType)?result.activeType:null)||spxDetectNativeType(result);
  const lines=(result.lines||[]).filter(x=>x.source!=='total-roi').slice().sort((a,b)=>a.y-b.y||a.x-b.x);
  const counts=Array(8).fill(0),recognized=new Set(),debug=[];
+ let unresolvedLabels=0, lastWeightBottom=0, conflictingLabels=0;
  const width=result.width||1;
  // Each label is tied to the nearest count on its own horizontal card.
  // A zero count is valid, but missing labels remain unresolved rather than guessed.
  for(const line of lines){
   const ix=weightIndex(line.text);
-  if(ix<0 || recognized.has(ix))continue;
+  if(ix<0)continue;
+  if(recognized.has(ix)){conflictingLabels++;continue;}
+  lastWeightBottom=Math.max(lastWeightBottom,line.y+line.h);
   const center=line.y+line.h/2;
   const band=Math.max(line.h*2.5,width*.09);
   const options=lines.filter(x=>x!==line && Math.abs(x.y+x.h/2-center)<band && x.x>=line.x+line.w*.5)
@@ -567,17 +571,22 @@ function spxNativeParse(result){
   if(options.length){
    counts[ix]=options[0].value;recognized.add(ix);
    debug.push(WEIGHTS[ix]+': '+options[0].value+' | '+line.text+' => '+options[0].x.text);
-  }else debug.push(WEIGHTS[ix]+': chưa nhận được số đơn | '+line.text);
+  }else {unresolvedLabels++;debug.push(WEIGHTS[ix]+': chưa nhận được số đơn | '+line.text);}
  }
  const spatialSum=counts.reduce((a,b)=>a+b,0);
  // Only use full-text fallback when its independent 8-bin sum matches SPX total.
  const full=parseOCR(result.text||'');
  const fullSum=full.counts.reduce((a,b)=>a+b,0);
- if(parsed.expected!==null && spatialSum!==parsed.expected && full.found===8 && fullSum===parsed.expected){
+ if(parsed.expected!==null && spatialSum!==parsed.expected && full.found>0 && fullSum===parsed.expected){
   parsed.counts=full.counts;
   debug.push('Fallback toàn ảnh khớp tổng; kiểm tra lại từng nhãn.');
  }else parsed.counts=counts;
- parsed.found=(parsed.counts===full.counts && full.found===8)?8:recognized.size;
+ parsed.found=spatialSum!==parsed.expected && fullSum===parsed.expected && full.found>0 ? full.found : recognized.size;
+ // Only spatially tied card counts may be batch-saved automatically.
+ // A matching sum alone cannot prove that OCR did not swap two card values.
+ parsed.ocrAutoVerified=parsed.expected!==null && recognized.size>0 && unresolvedLabels===0 && conflictingLabels===0 && spatialSum===parsed.expected && lastWeightBottom>0 && lastWeightBottom<(result.height||1)*0.83;
+ parsed.ocrVisibleCount=recognized.size;
+ parsed.ocrUnresolved=unresolvedLabels;
  parsed.ocrCards=recognized.size;
  parsed.ocrDebug='ML Kit Native (1 lượt OCR):\n'+debug.join('\n')+'\nTổng SPX OCR: '+(parsed.expected===null?'chưa nhận dạng':parsed.expected);
  if(parsed.expected===null)parsed.ocrDebug+='\nCHƯA ĐỌC ĐƯỢC TỔNG SPX: nhập từ ảnh trước khi lưu.';
@@ -672,8 +681,8 @@ function spxBatchStatus(item){
  if(!['giao','lay','hoan'].includes(item.type))return ['bad','Thiếu nhiệm vụ'];
  if(item.expected===null||item.expected===undefined)return ['bad','Thiếu tổng SPX'];
  if(sum!==Number(item.expected))return ['bad','Tổng không khớp'];
- if(!item.manuallyVerified && (item.found||0)<8)return ['bad','Cần kiểm tra đủ 8 mốc cân'];
- return ['ok',item.manuallyVerified?'Đã kiểm tra thủ công':'Khớp tổng · đủ 8 mốc'];
+ if(!item.manuallyVerified && !item.ocrAutoVerified)return ['bad','Cần kiểm tra mốc cân hoặc ảnh bị cắt'];
+ return ['ok',item.manuallyVerified?'Đã kiểm tra thủ công':'Khớp tổng · mốc hiển thị đã đối chiếu'];
 }
 function spxBatchKey(r){return (r.date||'')+'|'+(r.type||'')}
 function spxBatchSame(a,b){return spxBatchKey(a)===spxBatchKey(b)&&JSON.stringify(a.counts)===JSON.stringify(b.counts)}
