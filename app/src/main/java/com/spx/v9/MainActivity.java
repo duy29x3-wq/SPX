@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
             }
             Bitmap crop = Bitmap.createBitmap(source, left, top, right-left, bottom-top);
             source.recycle(); source = null;
-            int scale = 3;
+            int scale = Math.max(1, Math.min(3, 2400 / Math.max(1, crop.getWidth())));
             Bitmap enlarged = Bitmap.createScaledBitmap(crop, crop.getWidth()*scale, crop.getHeight()*scale, true);
             crop.recycle();
             recognizer.process(InputImage.fromBitmap(enlarged, 0))
@@ -256,7 +256,6 @@ public class MainActivity extends Activity {
                 JSONObject item = new JSONObject();
                 item.put("text", line.getText());
                 item.put("source", offset == null ? "full" : "total-roi");
-                 item.put("source", offset == null ? "full" : "total-roi");
                 if (offset == null) {
                     item.put("x", r.left); item.put("y", r.top);
                     item.put("w", r.width()); item.put("h", r.height());
@@ -276,19 +275,8 @@ public class MainActivity extends Activity {
     private String detectActiveTab(Uri uri) {
         Bitmap bitmap = null;
         try {
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            try (InputStream stream = getContentResolver().openInputStream(uri)) {
-                BitmapFactory.decodeStream(stream, null, bounds);
-            }
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            int sample = 1;
-            while (Math.max(bounds.outWidth / sample, bounds.outHeight / sample) > 1600) sample *= 2;
-            opts.inSampleSize = sample;
-            try (InputStream stream = getContentResolver().openInputStream(uri)) {
-                bitmap = BitmapFactory.decodeStream(stream, null, opts);
-            }
+            // Normalize EXIF orientation before locating the selected tab.
+            bitmap = loadUprightBitmap(uri);
             if (bitmap == null) return null;
             int w = bitmap.getWidth(), h = bitmap.getHeight();
             if (w < 180 || h < 300) return null;
@@ -340,14 +328,7 @@ public class MainActivity extends Activity {
 
     private String makePreview(Uri uri) {
         try {
-            BitmapFactory.Options opt = new BitmapFactory.Options();
-            opt.inJustDecodeBounds = true;
-            try (InputStream is = getContentResolver().openInputStream(uri)) { BitmapFactory.decodeStream(is, null, opt); }
-            int sample = 1;
-            while (Math.max(opt.outWidth / sample, opt.outHeight / sample) > 1100) sample *= 2;
-            opt.inJustDecodeBounds = false; opt.inSampleSize = sample;
-            Bitmap bitmap;
-            try (InputStream is = getContentResolver().openInputStream(uri)) { bitmap = BitmapFactory.decodeStream(is, null, opt); }
+            Bitmap bitmap = loadUprightBitmap(uri);
             if (bitmap == null) return "";
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 75, out);
