@@ -255,6 +255,7 @@ public class MainActivity extends Activity {
                 if (r == null) continue;
                 JSONObject item = new JSONObject();
                 item.put("text", line.getText());
+                item.put("source", offset == null ? "full" : "total-roi");
                  item.put("source", offset == null ? "full" : "total-roi");
                 if (offset == null) {
                     item.put("x", r.left); item.put("y", r.top);
