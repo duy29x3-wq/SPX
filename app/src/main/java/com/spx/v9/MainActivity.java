@@ -39,7 +39,6 @@ public class MainActivity extends Activity {
     private final ArrayList<Uri> queue = new ArrayList<>();
     private TextRecognizer recognizer;
     private int done = 0, total = 0;
-    private boolean scanning = false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -71,7 +70,6 @@ public class MainActivity extends Activity {
     }
 
     private void openNativePicker() {
-        if (scanning) { sendError("Đang quét ảnh, vui lòng chờ hoàn tất."); return; }
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("image/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -98,7 +96,6 @@ public class MainActivity extends Activity {
             if (queue.isEmpty() && data.getData() != null) queue.add(data.getData());
         }
         total = queue.size();
-        if (total > 0) scanning = true;
         if (total == 0) { runJS("window.spxNativeCancelled&&window.spxNativeCancelled()"); return; }
         runJS("window.spxNativeStart&&window.spxNativeStart(" + total + ")");
         processNext();
@@ -106,7 +103,7 @@ public class MainActivity extends Activity {
 
     private static final String OCR_VERSION = "SPX-TOTAL-ROI-20261108-V5";
     private void processNext() {
-        if (queue.isEmpty()) { scanning = false; runJS("window.spxNativeDone&&window.spxNativeDone()"); return; }
+        if (queue.isEmpty()) { runJS("window.spxNativeDone&&window.spxNativeDone()"); return; }
         Uri uri = queue.remove(0);
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
@@ -258,6 +255,7 @@ public class MainActivity extends Activity {
                 if (r == null) continue;
                 JSONObject item = new JSONObject();
                 item.put("text", line.getText());
+                 item.put("source", offset == null ? "full" : "total-roi");
                 if (offset == null) {
                     item.put("x", r.left); item.put("y", r.top);
                     item.put("w", r.width()); item.put("h", r.height());
