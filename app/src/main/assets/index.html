@@ -71,7 +71,7 @@ main{padding:16px 13px}
 .nav .nav-icon svg{width:19px!important;height:19px!important}
 .nav .nav-label{font-size:11px!important;line-height:12px!important}
 .shell{padding-bottom:88px!important}
-</style></head><body><div class="shell"><header><div class="logo">🚚</div><div class="heading">Sản Lượng Đơn</div><button title="Biểu phí" onclick="openRates()">▤</button></header><main><div id="page"></div></main></div><nav class="nav" id="nav"></nav><div id="modalRoot"></div><input type="file" id="photoInput" accept="image/*" multiple hidden><script>
+</style><style id="spx-journal-clear-style">.spx-journal-clear{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:5px 0 15px;padding:11px 13px;background:#fff;border:1px solid #e4eaf0;border-radius:14px}.spx-journal-clear .smallbtn{white-space:nowrap;color:#b92d25;border-color:#f0b5b1;background:#fff3f1}.spx-journal-clear .smallbtn:disabled{opacity:.45}@media(max-width:360px){.spx-journal-clear{flex-wrap:wrap}.spx-journal-clear .smallbtn{width:100%}}</style></head><body><div class="shell"><header><div class="logo">🚚</div><div class="heading">Sản Lượng Đơn</div><button title="Biểu phí" onclick="openRates()">▤</button></header><main><div id="page"></div></main></div><nav class="nav" id="nav"></nav><div id="modalRoot"></div><input type="file" id="photoInput" accept="image/*" multiple hidden><script>
 'use strict';
 const TYPES=[{id:'giao',label:'Đơn Giao',icon:'🚚'},{id:'lay',label:'Đơn Lấy',icon:'📥'},{id:'hoan',label:'Đơn Trả',icon:'↶'},{id:'tong',label:'Tổng Kết',icon:'▥'}];
 const WEIGHTS=['>0 - 2 kg','>2 - 4 kg','>4 - 6 kg','>6 - 8 kg','>8 - 10 kg','>10 - 12 kg','>12 - 15 kg','>15 kg'];
@@ -544,53 +544,62 @@ function spxDetectNativeType(result){
  const markers=[['giao',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?giao\b/m],['lay',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?lay\b/m],['hoan',/^(?:loai\s*nghiep\s*vu|nghiep\s*vu)\s*[:：]\s*(?:don\s*)?(?:tra|hoan)\b/m]].filter(x=>x[1].test(text));
  return markers.length===1?markers[0][0]:null;
 }
+// V3: ghép số và nhãn cân theo VÙNG THẺ trên ảnh, không theo thứ tự thẻ.
+// OCR ML Kit đôi khi tách "116" và "Đơn hàng" thành hai dòng riêng.
 function spxNativeParse(result){
  const parsed=parseOCR(result.text||'');
  parsed.expected=spxReadTotal(result);
- // ML Kit chỉ trả chữ của cả 3 tab, không trả tab được gạch chân.
- // Giữ đúng nhiệm vụ mà người dùng đang mở thay vì đoán theo chữ 'Đã trả hàng'.
- // Prefer native pixel analysis; never infer from the three visible tab names.
  parsed.type=spxScanType||(['giao','lay','hoan'].includes(result.activeType)?result.activeType:null)||spxDetectNativeType(result);
- const lines=(result.lines||[]).filter(x=>x.source!=='total-roi').slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+ const W=Number(result.width)||1,H=Number(result.height)||1;
+ const lines=(result.lines||[]).filter(x=>x&&x.source!=='total-roi'&&Number.isFinite(Number(x.x))&&Number.isFinite(Number(x.y)))
+  .map(x=>({text:String(x.text||''),x:+x.x,y:+x.y,w:+x.w||1,h:+x.h||1}))
+  .sort((a,b)=>a.y-b.y||a.x-b.x);
+ const labels=lines.map(l=>({...l,ix:weightIndex(l.text)})).filter(l=>l.ix>=0&&l.y>H*.22);
  const counts=Array(8).fill(0),recognized=new Set(),debug=[];
- let unresolvedLabels=0, lastWeightBottom=0, conflictingLabels=0;
- const width=result.width||1;
- // Each label is tied to the nearest count on its own horizontal card.
- // A zero count is valid, but missing labels remain unresolved rather than guessed.
- for(const line of lines){
-  const ix=weightIndex(line.text);
-  if(ix<0)continue;
-  if(recognized.has(ix)){conflictingLabels++;continue;}
-  lastWeightBottom=Math.max(lastWeightBottom,line.y+line.h);
-  const center=line.y+line.h/2;
-  const band=Math.max(line.h*2.5,width*.09);
-  const options=lines.filter(x=>x!==line && Math.abs(x.y+x.h/2-center)<band && x.x>=line.x+line.w*.5)
-   .map(x=>({x, value:countFromText(x.text),dy:Math.abs(x.y+x.h/2-center)}))
-   .filter(x=>x.value!==null && x.value>=0)
-   .sort((a,b)=>a.dy-b.dy || b.x.x-a.x.x);
-  if(options.length){
-   counts[ix]=options[0].value;recognized.add(ix);
-   debug.push(WEIGHTS[ix]+': '+options[0].value+' | '+line.text+' => '+options[0].x.text);
-  }else {unresolvedLabels++;debug.push(WEIGHTS[ix]+': chưa nhận được số đơn | '+line.text);}
+ let conflicts=0,unresolved=0;
+ // Mỗi nhãn tạo một thẻ. Thẻ cuối có thể nằm ở bất kỳ vị trí nào trên màn hình.
+ // Không đòi nhãn cuối phải nằm trước 83% chiều cao (lỗi của V2).
+ for(let k=0;k<labels.length;k++){
+  const l=labels[k];
+  if(recognized.has(l.ix)){conflicts++;debug.push('Nhãn trùng: '+l.text);continue}
+  const next=labels.filter(z=>z.y>l.y+Math.max(l.h,8)*1.4).sort((x,y)=>x.y-y.y)[0];
+  const cardTop=l.y-Math.max(l.h*1.8,W*.045);
+  const cardBottom=next?Math.min(next.y-Math.max(l.h*.65,5),l.y+W*.31):Math.min(H,l.y+W*.31);
+  const cy=l.y+l.h/2;
+  // Chỉ xét cột số bên phải, cùng thẻ; loại trừ nhãn cân và tổng ở đầu trang.
+  const right=lines.filter(x=>x.x>W*.52&&x.y+x.h/2>=cardTop&&x.y+x.h/2<=cardBottom&&x.y>H*.27);
+  const candidates=[];
+  for(const x of right){
+   let value=countFromText(x.text);
+   if(value!==null){candidates.push({value,score:Math.abs(x.y+x.h/2-cy),why:x.text});continue}
+   // Số đơn riêng một dòng: chỉ nhận nếu ngay bên cạnh có dòng "Đơn hàng".
+   const raw=x.text.trim();
+   if(!/^\d{1,6}$/.test(raw))continue;
+   const neighbors=right.filter(z=>z!==x&&/đ[oơ]n\s*h[aà]ng|don\s*hang|đ[oơ]n/i.test(z.text)&&Math.abs(z.y+z.h/2-(x.y+x.h/2))<Math.max(W*.055,x.h*2.5));
+   if(neighbors.length)candidates.push({value:Number(raw),score:Math.abs(x.y+x.h/2-cy)+W*.006,why:raw+' + '+neighbors[0].text});
+  }
+  candidates.sort((x,y)=>x.score-y.score);
+  if(!candidates.length){unresolved++;debug.push(WEIGHTS[l.ix]+': không đọc được số | '+l.text);continue}
+  // Hai giá trị khác nhau trong cùng thẻ: không tự chọn bừa.
+  if(candidates.some(c=>c.value!==candidates[0].value&&Math.abs(c.score-candidates[0].score)<W*.055)){
+   conflicts++;debug.push(WEIGHTS[l.ix]+': số mâu thuẫn '+candidates.map(c=>c.value).join(','));continue;
+  }
+  counts[l.ix]=candidates[0].value;recognized.add(l.ix);
+  debug.push(WEIGHTS[l.ix]+': '+candidates[0].value+' | '+l.text+' => '+candidates[0].why);
  }
- const spatialSum=counts.reduce((a,b)=>a+b,0);
- // Only use full-text fallback when its independent 8-bin sum matches SPX total.
- const full=parseOCR(result.text||'');
- const fullSum=full.counts.reduce((a,b)=>a+b,0);
- if(parsed.expected!==null && spatialSum!==parsed.expected && full.found>0 && fullSum===parsed.expected){
-  parsed.counts=full.counts;
-  debug.push('Fallback toàn ảnh khớp tổng; kiểm tra lại từng nhãn.');
- }else parsed.counts=counts;
- parsed.found=spatialSum!==parsed.expected && fullSum===parsed.expected && full.found>0 ? full.found : recognized.size;
- // Only spatially tied card counts may be batch-saved automatically.
- // A matching sum alone cannot prove that OCR did not swap two card values.
- parsed.ocrAutoVerified=parsed.expected!==null && recognized.size>0 && unresolvedLabels===0 && conflictingLabels===0 && spatialSum===parsed.expected && lastWeightBottom>0 && lastWeightBottom<(result.height||1)*0.83;
- parsed.ocrVisibleCount=recognized.size;
- parsed.ocrUnresolved=unresolvedLabels;
- parsed.ocrCards=recognized.size;
- parsed.ocrDebug='ML Kit Native (1 lượt OCR):\n'+debug.join('\n')+'\nTổng SPX OCR: '+(parsed.expected===null?'chưa nhận dạng':parsed.expected);
- if(parsed.expected===null)parsed.ocrDebug+='\nCHƯA ĐỌC ĐƯỢC TỔNG SPX: nhập từ ảnh trước khi lưu.';
- else if(parsed.counts.reduce((a,b)=>a+b,0)!==parsed.expected)parsed.ocrDebug+='\nTỔNG CHƯA KHỚP: cần kiểm tra thủ công.';
+ const sum=counts.reduce((a,b)=>a+b,0);
+ // Chỉ tự duyệt khi tổng khớp, không trùng nhãn, không thiếu số,
+ // nhãn đều nằm trên ảnh và phần cuối ảnh còn khoảng trống đủ để thấy thẻ cuối.
+ // Nếu có thẻ bị cắt/ảnh cuộn dở, cần xác nhận thủ công.
+ const last=labels.reduce((m,l)=>Math.max(m,l.y+l.h),0);
+ const bottomSpace=H-last;
+ const noTruncatedCard=labels.length>0 && bottomSpace>Math.max(W*.08,H*.025);
+ const allMapped=labels.length===recognized.size&&unresolved===0&&conflicts===0;
+ parsed.counts=counts;parsed.found=recognized.size;
+ parsed.ocrAutoVerified=parsed.expected!==null&&recognized.size>0&&allMapped&&sum===parsed.expected&&noTruncatedCard;
+ parsed.ocrVisibleCount=recognized.size;parsed.ocrUnresolved=unresolved;
+ parsed.ocrCards=labels.length;
+ parsed.ocrDebug='ML Kit V3 (theo nhãn và vùng thẻ):\n'+debug.join('\n')+'\nTổng SPX: '+parsed.expected+'; cộng: '+sum+'; nhãn: '+labels.length+'; đọc: '+recognized.size+'; khoảng trống cuối: '+Math.round(bottomSpace)+'px; tự duyệt: '+parsed.ocrAutoVerified;
  parsed.preview=result.preview||'';
  return parsed;
 }
@@ -642,7 +651,26 @@ function spxSaveManual(){const date=$('#manualDate')?.value,type=$('#manualType'
 function spxDeleteDayType(date,type){if(!records.some(r=>r.date===date&&r.type===type)){alert('Ngày này chưa có dữ liệu '+TYPES.find(t=>t.id===type).label+' để xóa.');return;}if(!confirm('Xóa '+TYPES.find(t=>t.id===type).label+' ngày '+date.split('-').reverse().join('/')+'?'))return;records=records.filter(r=>!(r.date===date&&r.type===type));save();closeModal();switchPage('nhatky')}
 document.addEventListener('input',e=>{if(!e.target.matches('[id^="w"]')||!$('#manualTotal'))return;const sum=WEIGHTS.reduce((a,_,i)=>a+Math.max(0,Number($('#w'+i)?.value)||0),0);$('#manualTotal').textContent='Tổng: '+sum+' đơn'});
 function spxDayData(date){const data={};for(const t of TYPES.slice(0,3)){const rows=records.filter(r=>r.date===date&&r.type===t.id);const counts=Array(8).fill(0);for(const r of rows)r.counts.forEach((n,i)=>counts[i]+=num(n));data[t.id]={counts,count:counts.reduce((a,b)=>a+b,0),money:counts.reduce((a,n,i)=>a+reward(t.id,n,i),0)}}return data}
-function spxJournal(){const dates=[...new Set(records.filter(r=>r.date.startsWith(month)).map(r=>r.date))].sort((a,b)=>b.localeCompare(a));return `<div class="between"><div class="journal-title"><span>▦</span> Nhật ký sản lượng từng ngày</div>${monthControl()}</div>${dates.length?dates.map(date=>{const d=spxDayData(date),sum=Object.values(d).reduce((a,x)=>a+x.money,0);return `<div class="day-card"><div class="day-head"><span>📅 Ngày ${date.split('-').reverse().join('/')}</span></div><div class="day-metrics">${[['giao','🚚','Giao'],['lay','📦','Lấy'],['hoan','↶','Trả']].map(([t,ic,label])=>`<div><div class="metric-name">${ic} ${label}: ${d[t].count} đơn</div><div class="metric-money">${fmt(d[t].money)}</div></div>`).join('')}</div><div class="day-total"><span>💰 Tổng tiền ngày:</span><strong>${fmt(sum)}</strong></div><div class="day-delete-row"><button type="button" class="smallbtn spx-edit-day" onclick="event.stopPropagation();spxOpenDay('${date}')">✎ Sửa</button><button type="button" class="smallbtn danger" onclick="event.stopPropagation();spxDeleteEntireDay('${date}')">🗑 Xóa</button></div></div>`}).join(''):'<div class="journal-empty">Chưa có dữ liệu trong tháng này.</div>'}`}
+function spxJournal(){const dates=[...new Set(records.filter(r=>r.date.startsWith(month)).map(r=>r.date))].sort((a,b)=>b.localeCompare(a));return `<div class="between"><div class="journal-title"><span>▦</span> Nhật ký sản lượng từng ngày</div>${monthControl()}</div><div class="spx-journal-clear"><span class="muted">${records.filter(r=>r.date.startsWith(month)).length} bản ghi trong tháng này</span><button type="button" class="smallbtn danger" onclick="spxDeleteMonthJournal()" ${records.some(r=>r.date.startsWith(month))?'':'disabled'}>🗑 Xóa tháng này</button></div>${dates.length?dates.map(date=>{const d=spxDayData(date),sum=Object.values(d).reduce((a,x)=>a+x.money,0);return `<div class="day-card"><div class="day-head"><span>📅 Ngày ${date.split('-').reverse().join('/')}</span></div><div class="day-metrics">${[['giao','🚚','Giao'],['lay','📦','Lấy'],['hoan','↶','Trả']].map(([t,ic,label])=>`<div><div class="metric-name">${ic} ${label}: ${d[t].count} đơn</div><div class="metric-money">${fmt(d[t].money)}</div></div>`).join('')}</div><div class="day-total"><span>💰 Tổng tiền ngày:</span><strong>${fmt(sum)}</strong></div><div class="day-delete-row"><button type="button" class="smallbtn spx-edit-day" onclick="event.stopPropagation();spxOpenDay('${date}')">✎ Sửa</button><button type="button" class="smallbtn danger" onclick="event.stopPropagation();spxDeleteEntireDay('${date}')">🗑 Xóa</button></div></div>`}).join(''):'<div class="journal-empty">Chưa có dữ liệu trong tháng này.</div>'}`}
+function spxDeleteMonthJournal(){
+ const selectedMonth=month;
+ const count=records.filter(r=>r.date.startsWith(selectedMonth)).length;
+ if(!count)return;
+ const [year,mm]=selectedMonth.split('-');
+ const label='tháng '+Number(mm)+'/'+year;
+ if(!confirm('Xóa '+count+' bản ghi Đơn Giao, Đơn Lấy và Đơn Trả trong '+label+'?\n\nCác tháng khác sẽ được giữ nguyên.'))return;
+ if(!confirm('Xác nhận lần cuối: Xóa vĩnh viễn nhật ký '+label+'?'))return;
+ const previous=records;
+ const remaining=records.filter(r=>!r.date.startsWith(selectedMonth));
+ try {
+  localStorage.setItem('spx_records_v1',JSON.stringify(remaining));
+  records=remaining;
+  render();
+ } catch(e) {
+  records=previous;
+  alert('Không thể xóa dữ liệu khỏi bộ nhớ. Vui lòng thử lại.');
+ }
+}
 function spxDeleteEntireDay(date){
  const count=records.filter(r=>r.date===date).length;
  if(!count)return;
