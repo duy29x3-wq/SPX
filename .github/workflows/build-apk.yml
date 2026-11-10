@@ -1,13 +1,16 @@
-name: Build SPX V9 APK (Updateable)
+
+name: Build San Luong Don APK
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+
     permissions:
       contents: read
 
@@ -21,46 +24,34 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK Command-line Tools
-        run: |
-          SDK_ROOT="${ANDROID_HOME:-$HOME/android-sdk}"
-          mkdir -p "$SDK_ROOT/cmdline-tools"
-          curl -fL --retry 3 -o /tmp/cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/android-tools
-          mv /tmp/android-tools/cmdline-tools "$SDK_ROOT/cmdline-tools/latest"
-          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" --licenses || true
-          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
 
-      - name: Restore fixed release signing key
-        env:
-          SPX_KEYSTORE_BASE64: ${{ secrets.SPX_KEYSTORE_BASE64 }}
+      - name: Grant Gradle permission
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Rename APK
         run: |
-          if [ -z "$SPX_KEYSTORE_BASE64" ]; then
-            echo 'Missing SPX_KEYSTORE_BASE64 GitHub secret' >&2
+          APK=$(find app/build/outputs/apk/release \
+            -maxdepth 1 -name "*.apk" \
+            -type f | head -n 1)
+
+          if [ -z "$APK" ]; then
+            echo "Khong tim thay APK"
             exit 1
           fi
-          printf '%s' "$SPX_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/spx-v9-release.jks"
-          echo "SPX_KEYSTORE_PATH=$RUNNER_TEMP/spx-v9-release.jks" >> "$GITHUB_ENV"
 
-      - name: Build signed release APK
-        env:
-          SPX_KEYSTORE_PASSWORD: ${{ secrets.SPX_KEYSTORE_PASSWORD }}
-          SPX_KEY_PASSWORD: ${{ secrets.SPX_KEY_PASSWORD }}
-        run: |
-          test -n "$SPX_KEYSTORE_PASSWORD" && test -n "$SPX_KEY_PASSWORD" || { echo 'Missing signing password secrets' >&2; exit 1; }
-          gradle --no-daemon assembleRelease
+          cp "$APK" "Sản Lượng Đơn.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SPX-V9-Update-APK
-          path: app/build/outputs/apk/release/*.apk
+          name: San-Luong-Don
+          path: Sản Lượng Đơn.apk
           if-no-files-found: error
