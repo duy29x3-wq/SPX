@@ -37,20 +37,48 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build Release APK
-        run: gradle assembleRelease --no-daemon
+      - name: Restore JKS signing key
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SPX_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
 
-      - name: Prepare APK
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Missing keystore secret"
+            exit 1
+          fi
+
+          mkdir -p app
+
+          printf '%s' "$KEYSTORE_BASE64" \
+            | base64 --decode \
+            > app/spx-v9-release.jks
+
+          test -s app/spx-v9-release.jks
+
+          echo "Keystore restored"
+
+      - name: Build signed Release APK
+        env:
+          SPX_KEYSTORE_PASSWORD: ${{ secrets.SPX_KEYSTORE_PASSWORD }}
+          SPX_KEY_PASSWORD: ${{ secrets.SPX_KEY_PASSWORD }}
+        run: |
+          gradle assembleRelease --no-daemon
+
+      - name: Rename APK
         shell: bash
         run: |
           set -euo pipefail
 
           APK=$(find app/build/outputs/apk/release \
-            -maxdepth 1 -type f -name "*.apk" \
+            -maxdepth 1 \
+            -type f \
+            -name "*.apk" \
             | head -n 1)
 
           if [ -z "$APK" ]; then
-            echo "APK not found"
+            echo "Release APK not found"
             exit 1
           fi
 
@@ -62,11 +90,17 @@ jobs:
           set -euo pipefail
 
           BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" \
-            -mindepth 1 -maxdepth 1 -type d \
-            | sort -V | tail -n 1)
+            -mindepth 1 \
+            -maxdepth 1 \
+            -type d \
+            | sort -V \
+            | tail -n 1)
 
           "$BUILD_TOOLS/apksigner" verify \
-            --verbose "Sản Lượng Đơn.apk"
+            --verbose \
+            "Sản Lượng Đơn.apk"
+
+          echo "APK signature verified"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -74,3 +108,4 @@ jobs:
           name: San-Luong-Don
           path: Sản Lượng Đơn.apk
           if-no-files-found: error
+          retention-days: 30
