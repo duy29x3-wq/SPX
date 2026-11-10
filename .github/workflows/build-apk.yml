@@ -7,12 +7,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout source
@@ -24,8 +24,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Check Android SDK
+        shell: bash
+        run: |
+          set -e
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          test -d "$ANDROID_HOME/platforms"
+          test -d "$ANDROID_HOME/build-tools"
+          echo "Android SDK ready"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -36,18 +43,33 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Rename APK
+      - name: Prepare APK
+        shell: bash
         run: |
+          set -euo pipefail
+
           APK=$(find app/build/outputs/apk/release \
-            -maxdepth 1 -name "*.apk" \
-            -type f | head -n 1)
+            -maxdepth 1 -type f -name "*.apk" \
+            | head -n 1)
 
           if [ -z "$APK" ]; then
-            echo "Khong tim thay APK"
+            echo "APK not found"
             exit 1
           fi
 
           cp "$APK" "Sản Lượng Đơn.apk"
+
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" \
+            -mindepth 1 -maxdepth 1 -type d \
+            | sort -V | tail -n 1)
+
+          "$BUILD_TOOLS/apksigner" verify \
+            --verbose "Sản Lượng Đơn.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -55,3 +77,4 @@ jobs:
           name: San-Luong-Don
           path: Sản Lượng Đơn.apk
           if-no-files-found: error
+          retention-days: 30
